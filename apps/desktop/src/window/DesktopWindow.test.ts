@@ -1249,3 +1249,27 @@ describe("DesktopWindow", () => {
     }),
   );
 });
+
+describe("isPopoutWindowUrl", () => {
+  it("accepts only same-origin app routes flagged as pop-outs", () => {
+    const applicationUrl = "t3code://app/index.html";
+    assert.isTrue(
+      DesktopWindow.isPopoutWindowUrl({
+        applicationUrl,
+        navigationUrl: "t3code://app/env/thread-1?popout=1",
+      }),
+    );
+    assert.isFalse(
+      DesktopWindow.isPopoutWindowUrl({
+        applicationUrl,
+        navigationUrl: "t3code://app/env/thread-1",
+      }),
+    );
+    assert.isFalse(
+      DesktopWindow.isPopoutWindowUrl({
+        applicationUrl,
+        navigationUrl: "https://example.com/env/thread-1?popout=1",
+      }),
+    );
+  });
+});

@@ -4,7 +4,7 @@ import { canForkProjectedAssistantItem } from "@t3tools/client-runtime/state/thr
 import { memo, use, useState } from "react";
 import { type ChatMessage, type TurnDiffSummary } from "../../types";
 import ChatMarkdown from "../ChatMarkdown";
-import { GitForkIcon } from "lucide-react";
+import { GitForkIcon, PinIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { ProposedPlanCard } from "./ProposedPlanCard";
 import { HtmlRenderFrame } from "./HtmlRenderFrame";
@@ -124,7 +124,40 @@ function AssistantForkButton({
       >
         <GitForkIcon className={cn("size-3", busy && "animate-pulse")} />
       </TooltipTrigger>
-      <TooltipPopup side="top">Fork from this response</TooltipPopup>
+      <TooltipPopup side="top">Fork</TooltipPopup>
+    </Tooltip>
+  );
+}
+
+/** Pins live in this client only; the gold strip on the minimap and the pinned list read them. */
+function AssistantPinButton({ messageId }: { readonly messageId: string }) {
+  const ctx = use(TimelineRowCtx);
+  if (ctx.onToggleMessagePin === undefined) return null;
+  const pinned = ctx.pinnedMessageIds.has(messageId);
+  const label = pinned ? "Unpin response" : "Pin response";
+  const onToggle = ctx.onToggleMessagePin;
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            aria-label={label}
+            aria-pressed={pinned}
+            data-pinned={pinned || undefined}
+            onClick={() => onToggle(messageId)}
+          />
+        }
+      >
+        {pinned ? (
+          <PinIcon className="size-3 fill-warning text-warning" />
+        ) : (
+          <PinIcon className="size-3" />
+        )}
+      </TooltipTrigger>
+      <TooltipPopup side="top">{label}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -187,6 +220,9 @@ function AssistantMessageMeta({
       />
       {projectedItem?.item.type === "assistant_message" ? (
         <AssistantForkButton projectedItem={projectedItem} />
+      ) : null}
+      {message.role === "assistant" && !message.streaming ? (
+        <AssistantPinButton messageId={message.id} />
       ) : null}
       {!message.streaming && (
         <Tooltip>

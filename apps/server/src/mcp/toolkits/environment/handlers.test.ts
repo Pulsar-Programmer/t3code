@@ -95,3 +95,77 @@ it.effect("refuses a preferences update when the caller's turn ends while it wai
     );
   }),
 );
+
+it.effect("keeps credentials and provider wiring out of agent settings reads and writes", () =>
+  Effect.gen(function* () {
+    const patches = yield* Ref.make<ReadonlyArray<unknown>>([]);
+    const layerDependencies = Layer.mergeAll(
+      ThreadCommandExecutor.layer,
+      Layer.succeed(McpInvocationContext.McpInvocationContext, {
+        environmentId,
+        requestNamespace: "provider:settings",
+        thread: {
+          threadId,
+          providerSessionId: "provider:settings",
+          providerInstanceId: ProviderInstanceId.make("codex"),
+        },
+        client: undefined,
+        capabilities: new Set(["orchestration" as const]),
+        issuedAt: 0,
+      }),
+      Layer.mock(ThreadManagement.ThreadManagementService)({
+        getThreadShell: () => Effect.succeed(liveThreadShell(threadId)),
+      }),
+      Layer.mock(Environment.ServerEnvironment)({
+        getDescriptor: Effect.succeed({
+          environmentId,
+          label: "Test",
+          platform: { os: "linux", arch: "x64" },
+          serverVersion: "0.0.0",
+          capabilities: { repositoryIdentity: false },
+        }),
+      }),
+      Layer.mock(Settings.ServerSettingsService)({
+        getSettings: Effect.succeed(DEFAULT_SERVER_SETTINGS),
+        updateSettings: (patch) =>
+          Ref.update(patches, (all) => [...all, patch]).pipe(
+            Effect.as({ ...DEFAULT_SERVER_SETTINGS, threadTitleInstructions: "Short." }),
+          ),
+      }),
+    );
+    yield* Effect.gen(function* () {
+      const toolkit = yield* EnvironmentToolkit;
+      const call = (name: "t3_settings_read" | "t3_settings_update", params: object) =>
+        toolkit.handle(name, params as never).pipe(
+          Stream.unwrap,
+          Stream.runCollect,
+          Effect.map((chunks) => chunks.at(-1)?.result),
+        );
+
+      const read = yield* call("t3_settings_read", {});
+      const keys = read !== undefined && "keys" in read ? read.keys : [];
+      expect(keys).toContain("threadTitleInstructions");
+      expect(keys).not.toContain("providerInstances");
+      expect(keys).not.toContain("secretProviders");
+
+      expect(yield* call("t3_settings_update", { patch: { providerInstances: {} } })).toMatchObject(
+        { code: "invalid_request" },
+      );
+      expect(yield* Ref.get(patches)).toEqual([]);
+
+      expect(
+        yield* call("t3_settings_update", { patch: { threadTitleInstructions: "Short." } }),
+      ).toEqual({
+        settings: { threadTitleInstructions: "Short." },
+        keys: ["threadTitleInstructions"],
+      });
+      expect(yield* Ref.get(patches)).toEqual([{ threadTitleInstructions: "Short." }]);
+    }).pipe(
+      Effect.provide(
+        McpToolAccess.HandlersLayer.layer(EnvironmentHandlers.layer).pipe(
+          Layer.provideMerge(layerDependencies),
+        ),
+      ),
+    );
+  }),
+);

@@ -327,6 +327,19 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["transparent transparency solid menus dialogs composer"],
   },
   {
+    // Prefixed because the slider control already owns the `citation-highlight-padding` id.
+    id: "setting-citation-highlight-padding",
+    title: "Citation highlight padding",
+    to: "/settings/appearance",
+    searchTerms: ["highlight marker cite quote selection size taller px"],
+  },
+  {
+    id: "ui-theme",
+    title: "UI theme",
+    to: "/settings/appearance",
+    searchTerms: ["celedus web t3 code interface style look serif pill paper buttons"],
+  },
+  {
     id: "diff-color-scheme",
     title: "Diff colors",
     to: "/settings/diffs",
@@ -455,6 +468,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Working section",
     to: "/settings/general",
     searchTerms: ["hide fold running monitoring threads inbox sidebar shelf"],
+  },
+  {
+    id: "drafts-shelf",
+    title: "Drafts section",
+    to: "/settings/general",
+    searchTerms: ["hide fold unsent drafts composer sidebar shelf"],
   },
   {
     id: "boring-sidebar",
@@ -700,6 +719,30 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Send shortcut",
     to: "/settings/chat",
     searchTerms: ["enter return command ctrl multiline prompt new line composer"],
+  },
+  {
+    id: "large-timeline-navigator",
+    title: "Large message navigator",
+    to: "/settings/chat",
+    searchTerms: ["minimap timeline navigator jump messages left strip bigger size scroll"],
+  },
+  {
+    id: "stash-button",
+    title: "Stash button",
+    to: "/settings/chat",
+    searchTerms: ["stash pop save prompt aside composer shoulder button draft"],
+  },
+  {
+    id: "command-palette-button",
+    title: "Command palette button",
+    to: "/settings/chat",
+    searchTerms: ["cmd k command palette search button titlebar top right"],
+  },
+  {
+    id: "pinned-responses-button",
+    title: "Pinned responses button",
+    to: "/settings/chat",
+    searchTerms: ["pin pinned responses messages bookmark jump list long thread"],
   },
   {
     id: "follow-up-behavior",

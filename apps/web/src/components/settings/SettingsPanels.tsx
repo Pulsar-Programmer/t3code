@@ -448,9 +448,13 @@ export function useSettingsRestore(onRestored?: () => void) {
       ? ["Contrast"]
       : []),
     ...(settings.glassOpacity !== DEFAULT_UNIFIED_SETTINGS.glassOpacity ? ["Glass opacity"] : []),
+    ...(settings.citationHighlightPaddingPx !== DEFAULT_UNIFIED_SETTINGS.citationHighlightPaddingPx
+      ? ["Citation highlight padding"]
+      : []),
     ...(settings.diffColorScheme !== DEFAULT_UNIFIED_SETTINGS.diffColorScheme
       ? ["Diff colors"]
       : []),
+    ...(settings.uiTheme !== DEFAULT_UNIFIED_SETTINGS.uiTheme ? ["UI theme"] : []),
     ...(settings.chatWidth !== DEFAULT_UNIFIED_SETTINGS.chatWidth ? ["Chat width"] : []),
     ...(settings.effortDisplay !== DEFAULT_UNIFIED_SETTINGS.effortDisplay
       ? ["Effort display"]
@@ -482,6 +486,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       : []),
     ...(settings.sidebarWorkingShelfEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled
       ? ["Working section"]
+      : []),
+    ...(settings.sidebarDraftsShelfEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarDraftsShelfEnabled
+      ? ["Drafts section"]
       : []),
     ...(settings.sidebarAutoSettleAfterDays !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
       ? ["Auto-settle inactive threads"]
@@ -629,6 +636,7 @@ export function useSettingsRestore(onRestored?: () => void) {
     updateSettings({
       appearanceContrast: DEFAULT_UNIFIED_SETTINGS.appearanceContrast,
       diffColorScheme: DEFAULT_UNIFIED_SETTINGS.diffColorScheme,
+      uiTheme: DEFAULT_UNIFIED_SETTINGS.uiTheme,
       chatWidth: DEFAULT_UNIFIED_SETTINGS.chatWidth,
       effortDisplay: DEFAULT_UNIFIED_SETTINGS.effortDisplay,
       mathRenderingEnabled: DEFAULT_UNIFIED_SETTINGS.mathRenderingEnabled,
@@ -648,10 +656,12 @@ export function useSettingsRestore(onRestored?: () => void) {
       contextWindowMeterEnabled: DEFAULT_UNIFIED_SETTINGS.contextWindowMeterEnabled,
       environmentIdentificationMode: DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode,
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
+      citationHighlightPaddingPx: DEFAULT_UNIFIED_SETTINGS.citationHighlightPaddingPx,
       panelAnimationDurationMs: DEFAULT_UNIFIED_SETTINGS.panelAnimationDurationMs,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarProjectSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder,
       sidebarWorkingShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled,
+      sidebarDraftsShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarDraftsShelfEnabled,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
       sidebarAutoSettleKeepPullRequests: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleKeepPullRequests,
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
@@ -908,6 +918,32 @@ export function GeneralSettingsPanel() {
             />
           }
         />
+        <SettingsRow
+          {...searchableSetting("drafts-shelf")}
+          description="Group unsent drafts under a collapsible Drafts section at the top of the sidebar."
+          resetAction={
+            settings.sidebarDraftsShelfEnabled !==
+            DEFAULT_UNIFIED_SETTINGS.sidebarDraftsShelfEnabled ? (
+              <SettingResetButton
+                label="drafts section"
+                onClick={() =>
+                  updateSettings({
+                    sidebarDraftsShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarDraftsShelfEnabled,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.sidebarDraftsShelfEnabled}
+              onCheckedChange={(checked) =>
+                updateSettings({ sidebarDraftsShelfEnabled: Boolean(checked) })
+              }
+              aria-label="Drafts section"
+            />
+          }
+        />
       </SettingsSection>
 
       <SettingsSection id="confirmations" title="Confirmations">
@@ -1159,6 +1195,111 @@ export function ChatSettingsPanel() {
                 ))}
               </SelectPopup>
             </Select>
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("large-timeline-navigator")}
+          description="Make the message navigator at the left of a chat bigger and easier to click."
+          resetAction={
+            settings.largeTimelineNavigator !== DEFAULT_UNIFIED_SETTINGS.largeTimelineNavigator ? (
+              <SettingResetButton
+                label="large message navigator"
+                onClick={() =>
+                  updateSettings({
+                    largeTimelineNavigator: DEFAULT_UNIFIED_SETTINGS.largeTimelineNavigator,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.largeTimelineNavigator}
+              onCheckedChange={(checked) =>
+                updateSettings({ largeTimelineNavigator: Boolean(checked) })
+              }
+              aria-label="Large message navigator"
+            />
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("stash-button")}
+          description="Keep a Stash button beside the composer to set the current prompt aside and bring it back later."
+          resetAction={
+            settings.composerStashButtonEnabled !==
+            DEFAULT_UNIFIED_SETTINGS.composerStashButtonEnabled ? (
+              <SettingResetButton
+                label="stash button"
+                onClick={() =>
+                  updateSettings({
+                    composerStashButtonEnabled: DEFAULT_UNIFIED_SETTINGS.composerStashButtonEnabled,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.composerStashButtonEnabled}
+              onCheckedChange={(checked) =>
+                updateSettings({ composerStashButtonEnabled: Boolean(checked) })
+              }
+              aria-label="Stash button"
+            />
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("command-palette-button")}
+          description="Show a button in the top right that opens the command palette."
+          resetAction={
+            settings.commandPaletteButtonEnabled !==
+            DEFAULT_UNIFIED_SETTINGS.commandPaletteButtonEnabled ? (
+              <SettingResetButton
+                label="command palette button"
+                onClick={() =>
+                  updateSettings({
+                    commandPaletteButtonEnabled:
+                      DEFAULT_UNIFIED_SETTINGS.commandPaletteButtonEnabled,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.commandPaletteButtonEnabled}
+              onCheckedChange={(checked) =>
+                updateSettings({ commandPaletteButtonEnabled: Boolean(checked) })
+              }
+              aria-label="Command palette button"
+            />
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("pinned-responses-button")}
+          description="Show a button in the top right that lists the responses you pinned in this thread."
+          resetAction={
+            settings.pinnedMessagesButtonEnabled !==
+            DEFAULT_UNIFIED_SETTINGS.pinnedMessagesButtonEnabled ? (
+              <SettingResetButton
+                label="pinned responses button"
+                onClick={() =>
+                  updateSettings({
+                    pinnedMessagesButtonEnabled:
+                      DEFAULT_UNIFIED_SETTINGS.pinnedMessagesButtonEnabled,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.pinnedMessagesButtonEnabled}
+              onCheckedChange={(checked) =>
+                updateSettings({ pinnedMessagesButtonEnabled: Boolean(checked) })
+              }
+              aria-label="Pinned responses button"
+            />
           }
         />
         <AdvancedSettings targetIds={[searchableSetting("skills-in-slash-menu").id]}>

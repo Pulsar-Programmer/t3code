@@ -1,8 +1,10 @@
 import { BUILT_IN_THEMES } from "@t3tools/shared/themePalettes";
-import { MonitorIcon, MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
+import { type UiTheme } from "@t3tools/contracts/settings";
+import { LayoutTemplateIcon, MonitorIcon, MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
 
 import { useCustomThemes } from "../hooks/useCustomThemes";
 import { useEnvironmentThemeDefinitions } from "../hooks/useEnvironmentTheme";
+import { updateClientSettings, useClientSettings } from "../hooks/useSettings";
 import { useTheme } from "../hooks/useTheme";
 import { getThemeDefinition } from "../themePalette";
 import {
@@ -24,6 +26,15 @@ export const APPEARANCE_OPTIONS = [
   { mode: "light", label: "Light", icon: SunIcon },
   { mode: "dark", label: "Dark", icon: MoonIcon },
 ] as const;
+
+const UI_THEME_OPTIONS: ReadonlyArray<{ value: UiTheme; label: string; description: string }> = [
+  { value: "celedus", label: "Celedus Web", description: "Paper tones, serif type, pill controls" },
+  { value: "t3code", label: "T3 Code", description: "The original look" },
+];
+
+function selectUiTheme(settings: { uiTheme: UiTheme }): UiTheme {
+  return settings.uiTheme;
+}
 
 export function notifyThemeSaveFailure(): void {
   toastManager.add(
@@ -159,5 +170,46 @@ export function useCommandPaletteThemeItems() {
     },
   };
 
-  return { changeThemeItem, changeAppearanceItem, themeEditorItem };
+  const uiTheme = useClientSettings(selectUiTheme);
+  const changeUiThemeItem: CommandPaletteSubmenuItem = {
+    kind: "submenu",
+    value: "action:change-ui-theme",
+    searchTerms: ["change ui theme", "interface", "style", "celedus", "t3 code", "look"],
+    title: "Change UI theme",
+    icon: <LayoutTemplateIcon className={ITEM_ICON_CLASS} />,
+    addonIcon: <LayoutTemplateIcon className={ADDON_ICON_CLASS} />,
+    groups: [
+      {
+        value: "ui-theme",
+        label: "Change UI theme",
+        items: UI_THEME_OPTIONS.map(({ value, label, description }) => ({
+          kind: "action",
+          value: `ui-theme:${value}`,
+          title: label,
+          description,
+          searchTerms: [label, "ui theme", "interface"],
+          icon: <LayoutTemplateIcon className={ITEM_ICON_CLASS} />,
+          titleTrailingContent:
+            uiTheme === value ? (
+              <span className="text-xs text-muted-foreground/70">Current</span>
+            ) : undefined,
+          run: async () => {
+            try {
+              await updateClientSettings({ uiTheme: value });
+            } catch {
+              toastManager.add(
+                stackedThreadToast({
+                  type: "error",
+                  title: "Couldn't save UI theme",
+                  description: "Try again.",
+                }),
+              );
+            }
+          },
+        })),
+      },
+    ],
+  };
+
+  return { changeThemeItem, changeAppearanceItem, changeUiThemeItem, themeEditorItem };
 }

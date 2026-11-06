@@ -1,0 +1,983 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Celedus Web interface style. Settings → Appearance → Interface → UI theme.
+   Active while <html data-ui-theme="celedus">: paper-tan light / Claude-dark,
+   terracotta accent, P22 Mackinac Pro serif, Fira Code mono, pill controls,
+   soft panels with menu-pop / modal-pop motion.
+
+   The rules here are unlayered, so they outrank Tailwind's utility layer and
+   the T3 Code tokens in index.css. The palette is scoped to the default color
+   theme only (no data-theme-id); a selected theme keeps its colors and gets
+   the Celedus shapes, type and motion on top.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-Book.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-BookItalic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-MedItalic.woff2") format("woff2");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-Bold.woff2") format("woff2");
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-BoldItalic.woff2") format("woff2");
+  font-weight: 600 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-ExtraBold.woff2") format("woff2");
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "P22 Mackinac Pro";
+  src: url("./assets/fonts/P22MackinacPro-ExBoldItalic.woff2") format("woff2");
+  font-weight: 800 900;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Fira Code";
+  src: url("./assets/fonts/FiraCode-VariableFont_wght.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Charter";
+  src: url("./assets/fonts/CharterRoman.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Charter";
+  src: url("./assets/fonts/CharterItalic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Charter";
+  src: url("./assets/fonts/CharterBold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Charter";
+  src: url("./assets/fonts/CharterBoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@keyframes cel-menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.96);
+  }
+}
+@keyframes cel-modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+@keyframes cel-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cel-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* ————— Celedus tokens (light), shared by every rule below ————— */
+html[data-ui-theme="celedus"] {
+  --cel-bg: #f4f1e6;
+  --cel-bg-deep: #ece7d6;
+  --cel-panel: #fdfcf8;
+  --cel-panel-2: #e9e4d2;
+  --cel-border: #d9d3bd;
+  --cel-border-soft: #e2ddc9;
+  --cel-text: #2b271e;
+  --cel-muted: #726c5c;
+  --cel-faint: #9d977f;
+  --cel-accent: #c96442;
+  --cel-accent-strong: #b4542f;
+  --cel-accent-soft: rgba(201, 100, 66, 0.18);
+  --cel-on-accent: #ffffff;
+  --cel-danger: #c94a3f;
+  --cel-danger-soft: rgba(201, 74, 63, 0.12);
+  --cel-success: #3fa860;
+  --cel-success-strong: #2f8f50;
+  --cel-warning: #d9a13f;
+  --cel-warning-strong: #a87a14;
+  --cel-blue: #007bff;
+  --cel-blue-soft: rgba(92, 155, 214, 0.14);
+  --cel-hover: rgba(72, 62, 38, 0.06);
+  --cel-hover-strong: rgba(72, 62, 38, 0.1);
+  --cel-shadow: 0 8px 30px rgba(90, 80, 55, 0.14);
+  --cel-shadow-soft: 0 2px 14px rgba(90, 80, 55, 0.09);
+  --cel-overlay: rgba(60, 54, 40, 0.4);
+  --cel-contrast-bg: #37332a;
+  --cel-contrast-fg: #faf9f4;
+  --cel-r-sm: 8px;
+  --cel-r-md: 12px;
+  --cel-r-lg: 16px;
+  --cel-r-xl: 20px;
+  --cel-ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --cel-ease-soft: cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  /* Shape, type and chrome apply with any color theme. */
+  --radius: 0.75rem;
+  --font-sans: "P22 Mackinac Pro", Charter, Georgia, serif;
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --surface-grain: none;
+  --app-scrollbar-width: 8px;
+  --app-scrollbar-thumb: var(--cel-border);
+  --app-scrollbar-thumb-hover: var(--cel-faint);
+  --inset-shadow-control-highlight: 0 0 transparent;
+  --inset-shadow-control-pressed: 0 0 transparent;
+  --shadow-composer: var(--cel-shadow-soft);
+  --shadow-composer-dark: var(--cel-shadow-soft);
+  --ease-drawer: var(--cel-ease-soft);
+
+  &.dark {
+    --cel-bg: #262624;
+    --cel-bg-deep: #1f1e1b;
+    --cel-panel: #30302e;
+    --cel-panel-2: #393937;
+    --cel-border: #3e3e3b;
+    --cel-border-soft: #34342f;
+    --cel-text: #e8e6e0;
+    --cel-muted: #9d9a92;
+    --cel-faint: #6f6c64;
+    --cel-accent: #d97757;
+    --cel-accent-strong: #e18a6d;
+    --cel-accent-soft: rgba(217, 119, 87, 0.16);
+    --cel-on-accent: #2a1a12;
+    --cel-danger: #e0655a;
+    --cel-danger-soft: rgba(224, 101, 90, 0.14);
+    --cel-success: #4ade80;
+    --cel-success-strong: #4ade80;
+    --cel-warning: #e3b341;
+    --cel-warning-strong: #e3b341;
+    --cel-blue: #5c8fd6;
+    --cel-blue-soft: rgba(130, 180, 235, 0.17);
+    --cel-hover: rgba(255, 255, 255, 0.065);
+    --cel-hover-strong: rgba(255, 255, 255, 0.1);
+    --cel-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    --cel-shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.28);
+    --cel-overlay: rgba(15, 14, 12, 0.6);
+    --cel-contrast-bg: #e8e6e0;
+    --cel-contrast-fg: #262624;
+  }
+}
+
+/* ————— palette: the default color theme becomes Celedus paper / Claude dark —————
+   Listed twice so the dark variant outranks the generated `:root:is(.dark, …)`
+   tokens. A selected theme (data-theme-id) keeps its own palette. */
+html[data-ui-theme="celedus"]:not([data-theme-id]),
+html[data-ui-theme="celedus"][data-theme-id=""],
+html.dark[data-ui-theme="celedus"]:not([data-theme-id]),
+html.dark[data-ui-theme="celedus"][data-theme-id=""] {
+  --background: var(--cel-bg);
+  --app-chrome-background: var(--cel-bg);
+  --toolbar-background: var(--cel-bg);
+  --toolbar-foreground: var(--cel-text);
+  --toolbar-border: var(--cel-border);
+  --toolbar-control: var(--cel-panel);
+  --toolbar-control-foreground: var(--cel-text);
+  --toolbar-control-hover: var(--cel-hover);
+  --surface-raised: var(--cel-panel);
+  --foreground: var(--cel-text);
+  --card: var(--cel-panel);
+  --card-foreground: var(--cel-text);
+  --popover: var(--cel-panel);
+  --popover-foreground: var(--cel-text);
+  --primary: var(--cel-accent);
+  --primary-foreground: var(--cel-on-accent);
+  --secondary: var(--cel-panel-2);
+  --secondary-foreground: var(--cel-text);
+  --muted: var(--cel-bg-deep);
+  --muted-foreground: var(--cel-muted);
+  --placeholder: var(--cel-faint);
+  --secondary-label: var(--cel-muted);
+  --icon-muted: var(--cel-muted);
+  --message-surface: var(--cel-panel-2);
+  --message-foreground: var(--cel-text);
+  --message-action: var(--cel-accent);
+  --message-action-foreground: var(--cel-on-accent);
+  --message-action-hover: var(--cel-accent-strong);
+  --accent: var(--cel-hover);
+  --accent-foreground: var(--cel-text);
+  --error: var(--cel-danger);
+  --error-foreground: var(--cel-danger);
+  --tool-error-icon: var(--cel-danger);
+  --error-surface: var(--cel-danger-soft);
+  --destructive: var(--cel-danger);
+  --destructive-foreground: var(--cel-danger);
+  --border: var(--cel-border);
+  --input: var(--cel-border);
+  --ring: var(--cel-accent);
+  --info: var(--cel-blue);
+  --info-foreground: var(--cel-blue);
+  --success: var(--cel-success);
+  --success-foreground: var(--cel-success-strong);
+  --warning: var(--cel-warning);
+  --warning-foreground: var(--cel-warning-strong);
+  --warning-surface: color-mix(in srgb, var(--cel-warning) 12%, transparent);
+  --update: var(--cel-accent);
+  --update-foreground: var(--cel-accent);
+  --sidebar: var(--cel-bg-deep);
+  --sidebar-foreground: var(--cel-text);
+  --sidebar-muted-foreground: var(--cel-muted);
+  --sidebar-control-surface: var(--cel-panel);
+  --sidebar-row-hover: var(--cel-hover);
+  --sidebar-row-active: var(--cel-panel);
+  --sidebar-row-selected: var(--cel-panel);
+  --sidebar-border: var(--cel-border);
+  --sidebar-stage-fade: var(--cel-bg-deep);
+  --code-background: var(--cel-bg-deep);
+  --code-foreground: var(--cel-text);
+  --terminal-background: var(--cel-bg-deep);
+  --terminal-foreground: var(--cel-text);
+  --terminal-cursor: var(--cel-accent);
+  --terminal-selection-background: var(--cel-accent-soft);
+}
+
+/* The thread sidebar re-declares its own zinc hierarchy; give it the same paper. */
+html[data-ui-theme="celedus"]:not([data-theme-id]) [data-app-sidebar],
+html[data-ui-theme="celedus"][data-theme-id=""] [data-app-sidebar],
+html.dark[data-ui-theme="celedus"]:not([data-theme-id]) [data-app-sidebar],
+html.dark[data-ui-theme="celedus"][data-theme-id=""] [data-app-sidebar] {
+  --background: var(--cel-bg-deep);
+  --foreground: var(--cel-text);
+  --card: var(--cel-panel);
+  --card-foreground: var(--cel-text);
+  --accent: var(--cel-hover);
+  --accent-foreground: var(--cel-text);
+  --muted: var(--cel-panel-2);
+  --muted-foreground: var(--cel-muted);
+  --secondary-label: var(--cel-muted);
+  --border: var(--cel-border);
+  --input: var(--cel-border);
+  --sidebar: var(--cel-bg-deep);
+  --sidebar-foreground: var(--cel-text);
+  --sidebar-muted-foreground: var(--cel-muted);
+  --sidebar-control-surface: var(--cel-panel);
+  --sidebar-row-hover: var(--cel-hover);
+  --sidebar-row-active: var(--cel-panel);
+  --sidebar-row-selected: var(--cel-panel);
+  --sidebar-border: var(--cel-border);
+  --sidebar-stage-fade: var(--cel-bg-deep);
+}
+
+/* A selected color theme keeps its palette: Celedus component colors follow its tokens. */
+html[data-ui-theme="celedus"][data-theme-id]:not([data-theme-id=""]) {
+  --cel-bg: var(--background);
+  --cel-bg-deep: var(--muted);
+  --cel-panel: var(--popover);
+  --cel-panel-2: var(--secondary);
+  --cel-border: var(--border);
+  --cel-border-soft: var(--border);
+  --cel-text: var(--foreground);
+  --cel-muted: var(--muted-foreground);
+  --cel-faint: var(--placeholder);
+  --cel-accent: var(--primary);
+  --cel-accent-strong: color-mix(in srgb, var(--primary) 85%, var(--foreground));
+  --cel-accent-soft: color-mix(in srgb, var(--primary) 18%, transparent);
+  --cel-on-accent: var(--primary-foreground);
+  --cel-danger: var(--destructive);
+  --cel-danger-soft: color-mix(in srgb, var(--destructive) 12%, transparent);
+  --cel-hover: var(--accent);
+  --cel-hover-strong: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --cel-contrast-bg: var(--foreground);
+  --cel-contrast-fg: var(--background);
+}
+
+/* ————— components ————— */
+html[data-ui-theme="celedus"] {
+  body {
+    line-height: 1.45;
+    letter-spacing: 0.002em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: var(--cel-accent-soft);
+  }
+
+  * {
+    scrollbar-color: var(--contrast-border) transparent;
+  }
+
+  /* Chrome scrollbars: thin inset thumb, as on the suite. */
+  ::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .dropdown-glass,
+  .dialog-glass,
+  .surface-glass,
+  .alert-glass {
+    background: color-mix(in srgb, var(--popover) var(--glass-opacity), transparent) !important;
+    -webkit-backdrop-filter: var(--glass-backdrop-filter);
+    backdrop-filter: var(--glass-backdrop-filter);
+    border-color: var(--contrast-border);
+    box-shadow: var(--cel-shadow);
+  }
+  .surface-glass {
+    box-shadow: none;
+  }
+  .dialog-backdrop {
+    background: var(--cel-overlay);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* —— buttons: .pill-btn / .btn —— */
+  [data-slot="button"] {
+    border-radius: 999px;
+    font-weight: 500;
+    transition:
+      background-color 0.16s ease,
+      border-color 0.16s ease,
+      color 0.16s ease,
+      box-shadow 0.16s ease,
+      scale 0.16s var(--cel-ease-soft);
+
+    &:not(:focus-visible),
+    &::before {
+      box-shadow: none;
+    }
+    &::before {
+      border-radius: inherit;
+    }
+    &:focus-visible {
+      box-shadow: none;
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+    &:active:not([aria-haspopup]) {
+      scale: 0.96;
+    }
+    /* .icon-btn keeps the small square radius; text buttons are pills. */
+    &[data-size^="icon"] {
+      border-radius: var(--cel-r-sm);
+    }
+    &[data-variant="default"]:not(:disabled):not([aria-disabled="true"]):hover,
+    &[data-variant="default"][data-pressed] {
+      background-color: var(--cel-accent-strong);
+      border-color: var(--cel-accent-strong);
+    }
+    &[data-variant="outline"],
+    &[data-variant="secondary"] {
+      background-color: var(--cel-panel);
+      border-color: var(--contrast-border);
+      color: var(--contrast-foreground);
+    }
+    &[data-variant="outline"]:not(:disabled):hover,
+    &[data-variant="outline"][data-pressed],
+    &[data-variant="secondary"]:not(:disabled):hover,
+    &[data-variant="secondary"][data-pressed] {
+      background-color: var(--cel-panel-2);
+      border-color: var(--contrast-placeholder);
+    }
+    &[data-variant="destructive"] {
+      background-color: var(--cel-danger);
+      border-color: var(--cel-danger);
+      color: #fff;
+    }
+    &[data-variant="destructive-outline"] {
+      background-color: var(--cel-panel);
+      border-color: var(--cel-danger-soft);
+      color: var(--cel-danger);
+    }
+    &[data-variant="destructive-outline"]:not(:disabled):hover,
+    &[data-variant="destructive-outline"][data-pressed] {
+      background-color: var(--cel-danger-soft);
+      border-color: var(--cel-danger);
+    }
+    &[data-variant="glass"] {
+      background: var(--cel-panel);
+      border-color: var(--contrast-border);
+      box-shadow: var(--cel-shadow-soft);
+    }
+    &[data-variant="ghost"]:not(:disabled):hover,
+    &[data-variant="ghost-muted"]:not(:disabled):hover,
+    &[data-variant="ghost-destructive"]:not(:disabled):hover {
+      background-color: var(--cel-hover);
+    }
+    &[data-variant="ghost-destructive"]:not(:disabled):hover {
+      background-color: var(--cel-danger-soft);
+    }
+    /* Equose icon buttons grow their glyph on hover; `scale` keeps any turn a chevron has. */
+    &[data-size^="icon"] > svg {
+      transition: scale 0.2s var(--cel-ease-pop);
+    }
+    &[data-size^="icon"]:not(:disabled):hover > svg {
+      scale: 1.12;
+    }
+  }
+
+  [data-slot="inline-button"] {
+    text-underline-offset: 3px;
+  }
+
+  /* —— badges: .badge pill —— */
+  [data-slot="badge"] {
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding-inline: 0.45em;
+  }
+
+  /* —— text fields: .auth-input / .text-input —— */
+  [data-slot="input-control"]:not([data-unstyled]),
+  [data-slot="textarea-control"]:not([data-unstyled]),
+  [data-slot="input-group"],
+  [data-slot="number-field-group"] {
+    border-radius: var(--cel-r-md);
+    background: var(--cel-panel);
+    border-color: var(--contrast-border);
+    box-shadow: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &::before {
+      box-shadow: none;
+    }
+    &[data-size="compact"],
+    &[data-size="sm"] {
+      border-radius: var(--cel-r-sm);
+    }
+    &:has(:focus-visible) {
+      border-color: var(--cel-accent);
+      box-shadow: 0 0 0 3px var(--cel-accent-soft);
+    }
+    &:has([aria-invalid="true"]) {
+      border-color: var(--cel-danger);
+    }
+    &:has([aria-invalid="true"]:focus-visible) {
+      box-shadow: 0 0 0 3px var(--cel-danger-soft);
+    }
+  }
+  /* On a panel (dialogs, cards) a field steps down to the deeper tone. */
+  :is([data-slot="dialog-popup"], [data-slot="alert-dialog-popup"], [data-slot="sheet-popup"])
+    :is([data-slot="input-control"], [data-slot="textarea-control"]):not([data-unstyled]) {
+    background: var(--cel-panel-2);
+  }
+  [data-slot="input"]::placeholder,
+  [data-slot="textarea"]::placeholder {
+    color: var(--contrast-placeholder);
+  }
+
+  /* —— select trigger: .dd-btn / .ui-select-btn —— */
+  [data-slot="select-trigger"][data-variant="default"],
+  [data-slot="combobox-input"],
+  [data-slot="autocomplete-input"] {
+    border-radius: var(--cel-r-md);
+    background: var(--cel-panel);
+    border-color: var(--contrast-border);
+    box-shadow: none;
+    transition:
+      border-color 0.13s ease,
+      color 0.13s ease,
+      box-shadow 0.13s ease;
+
+    &::before {
+      box-shadow: none;
+    }
+    &[data-size="compact"],
+    &[data-size="xs"],
+    &[data-size="sm"] {
+      border-radius: var(--cel-r-sm);
+    }
+    &:hover {
+      border-color: var(--contrast-placeholder);
+    }
+    &:focus-visible,
+    &[data-popup-open] {
+      border-color: var(--cel-accent);
+      box-shadow: 0 0 0 3px var(--cel-accent-soft);
+    }
+  }
+  [data-slot="select-icon"] svg {
+    transition: transform 0.25s var(--cel-ease-pop);
+  }
+  [data-slot="select-trigger"][data-popup-open] [data-slot="select-icon"] svg {
+    transform: rotate(-180deg);
+  }
+
+  /* —— menus and popovers: .menu with menu-pop —— */
+  [data-slot="menu-popup"],
+  [data-slot="select-popup"],
+  [data-slot="popover-popup"],
+  [data-slot="combobox-popup"],
+  [data-slot="autocomplete-popup"],
+  [data-slot="preview-card-popup"],
+  [data-slot="menu-sub-content"] {
+    border-radius: var(--cel-r-md);
+    transform-origin: top;
+
+    &[data-open]:not([data-ending-style]) {
+      animation: cel-menu-pop 0.16s var(--cel-ease-pop);
+    }
+    &::before {
+      box-shadow: none;
+    }
+  }
+  [data-slot="select-popup"] > .dropdown-glass,
+  [data-slot="menu-popup"],
+  [data-slot="popover-popup"]:not([data-variant="panel"]),
+  [data-slot="combobox-popup"],
+  [data-slot="autocomplete-popup"] {
+    border-radius: var(--cel-r-md);
+  }
+  [data-slot="menu-popup"] > div,
+  [data-slot="select-list"] {
+    padding: 5px;
+  }
+
+  [data-slot="menu-item"],
+  [data-slot="menu-checkbox-item"],
+  [data-slot="menu-radio-item"],
+  [data-slot="menu-sub-trigger"],
+  [data-slot="select-item"],
+  [data-slot="combobox-item"],
+  [data-slot="autocomplete-item"],
+  [data-slot="command-item"] {
+    border-radius: var(--cel-r-sm);
+    transition: background-color 0.11s ease;
+
+    &[data-highlighted],
+    &[data-selected] {
+      background-color: var(--cel-hover);
+    }
+    &[data-highlighted][data-selected] {
+      background-color: var(--cel-hover-strong);
+    }
+    &[data-variant="destructive"] {
+      color: var(--cel-danger);
+    }
+    &[data-variant="destructive"][data-highlighted] {
+      background-color: var(--cel-danger-soft);
+    }
+  }
+  [data-slot="select-item"][data-selected] {
+    color: var(--cel-accent);
+    font-weight: 600;
+  }
+  [data-slot="menu-separator"] {
+    background: var(--cel-border-soft);
+    margin: 5px 4px;
+  }
+  [data-slot="menu-shortcut"],
+  [data-slot="command-shortcut"] {
+    color: var(--contrast-placeholder);
+  }
+  [data-slot="menu-label"],
+  [data-slot="select-group-label"],
+  [data-slot="command-group-label"],
+  [data-slot="autocomplete-group-label"] {
+    color: var(--contrast-placeholder);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* —— dialogs: .overlay + .modal with modal-pop —— */
+  [data-slot="dialog-popup"],
+  [data-slot="alert-dialog-popup"],
+  [data-slot="command-dialog-popup"] {
+    background: color-mix(in srgb, var(--cel-panel) var(--glass-opacity), transparent);
+    border: 1px solid var(--contrast-border);
+    border-radius: var(--cel-r-lg);
+    box-shadow: var(--cel-shadow);
+    -webkit-backdrop-filter: var(--glass-backdrop-filter);
+    backdrop-filter: var(--glass-backdrop-filter);
+
+    &[data-open]:not([data-ending-style]):not([data-nested-dialog-open]) {
+      animation: cel-modal-pop 0.22s var(--cel-ease-pop);
+    }
+    &[data-mobile-sheet] {
+      @media (max-width: 639px) {
+        border-radius: var(--cel-r-lg) var(--cel-r-lg) 0 0;
+        border-bottom-width: 0;
+      }
+    }
+  }
+  [data-slot="dialog-backdrop"],
+  [data-slot="alert-dialog-backdrop"],
+  [data-slot="command-dialog-backdrop"],
+  [data-slot="sheet-backdrop"] {
+    background: var(--cel-overlay);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  [data-slot="dialog-title"],
+  [data-slot="alert-dialog-title"],
+  [data-slot="sheet-title"] {
+    font-weight: 600;
+    letter-spacing: -0.012em;
+  }
+  [data-slot="dialog-footer"],
+  [data-slot="alert-dialog-footer"] {
+    background: transparent;
+    border-top-color: var(--cel-border-soft);
+    border-bottom-left-radius: calc(var(--cel-r-lg) - 1px);
+    border-bottom-right-radius: calc(var(--cel-r-lg) - 1px);
+  }
+  [data-slot="sheet-popup"] {
+    background: color-mix(in srgb, var(--cel-panel) var(--glass-opacity), transparent);
+    -webkit-backdrop-filter: var(--glass-backdrop-filter);
+    backdrop-filter: var(--glass-backdrop-filter);
+    border-color: var(--contrast-border);
+    box-shadow: var(--cel-shadow);
+  }
+
+  /* —— tooltips: the suite's inspect-hint (ink on paper, inverted) —— */
+  [data-slot="tooltip-popup"] {
+    background: var(--contrast-foreground);
+    color: var(--cel-bg);
+    border: 0;
+    border-radius: var(--cel-r-sm);
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    text-align: center;
+
+    &::before {
+      display: none;
+    }
+    [data-slot="kbd"] {
+      background: color-mix(in srgb, var(--cel-bg) 18%, transparent);
+      border-color: color-mix(in srgb, var(--cel-bg) 30%, transparent);
+      color: inherit;
+    }
+  }
+
+  /* —— keyboard hints: mono chips (.nx-key-row code) —— */
+  [data-slot="kbd"] {
+    border-radius: 6px;
+    background: var(--cel-panel-2);
+    border: 1px solid var(--contrast-border);
+    color: var(--contrast-muted-foreground);
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+
+  /* —— switch: .nw-switch —— */
+  [data-slot="switch"] {
+    border: 1px solid var(--contrast-border);
+    background: var(--cel-panel-2);
+    padding: 1px;
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+
+    &[data-checked] {
+      background: var(--cel-accent);
+      border-color: var(--cel-accent);
+    }
+    &:focus-visible {
+      box-shadow: 0 0 0 3px var(--cel-accent-soft);
+    }
+    [data-slot="switch-thumb"] {
+      background: var(--contrast-muted-foreground);
+      box-shadow: none;
+    }
+    &[data-checked] [data-slot="switch-thumb"] {
+      background: #fff;
+    }
+  }
+
+  /* —— checkbox: .sel-box —— */
+  [data-slot="checkbox"] {
+    border-radius: 5px;
+    border: 1.5px solid var(--contrast-placeholder);
+    background: var(--cel-panel);
+    box-shadow: none;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      scale 0.12s var(--cel-ease-pop);
+
+    &::before {
+      display: none;
+    }
+    &:hover {
+      border-color: var(--contrast-foreground);
+    }
+    &[data-checked],
+    &[data-indeterminate] {
+      border-color: var(--cel-accent);
+      background: var(--cel-accent);
+    }
+    &:active {
+      scale: 0.92;
+    }
+    [data-slot="checkbox-indicator"] {
+      inset: -1.5px;
+      border-radius: 5px;
+      color: var(--cel-on-accent);
+    }
+    &[data-indeterminate] [data-slot="checkbox-indicator"] {
+      color: var(--cel-on-accent);
+    }
+  }
+  [data-slot="radio"] {
+    border: 1.5px solid var(--contrast-placeholder);
+    background: var(--cel-panel);
+    box-shadow: none;
+
+    &:hover {
+      border-color: var(--contrast-foreground);
+    }
+    &[data-checked] {
+      border-color: var(--cel-accent);
+    }
+  }
+
+  /* —— segmented controls: .paywall-period —— */
+  [data-slot="toggle-group"][data-variant="segmented"] {
+    gap: 2px;
+    padding: 2px;
+    border-radius: 999px;
+    border: 1px solid var(--contrast-border);
+    background: transparent;
+
+    [data-slot="toggle"] {
+      border-radius: 999px;
+      color: var(--contrast-muted-foreground);
+      box-shadow: none;
+      transition:
+        background-color 0.18s var(--cel-ease-soft),
+        color 0.18s ease;
+
+      &:hover {
+        background: var(--cel-hover);
+        color: var(--contrast-foreground);
+      }
+      &[data-pressed] {
+        background: var(--cel-panel-2);
+        color: var(--contrast-foreground);
+        font-weight: 600;
+      }
+    }
+  }
+  [data-slot="toggle"]:not([data-variant="segmented"]):not([data-variant="pill"]) {
+    border-radius: var(--cel-r-sm);
+    box-shadow: none;
+
+    &::before {
+      box-shadow: none;
+    }
+  }
+  [data-slot="toggle"][data-variant="outline"] {
+    background: var(--cel-panel);
+    border-color: var(--contrast-border);
+
+    &[data-pressed] {
+      background: var(--cel-panel-2);
+      border-color: var(--contrast-placeholder);
+    }
+  }
+
+  /* —— sliders: Hutton's hu-range —— */
+  .settings-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    box-shadow: none;
+    background: linear-gradient(
+      to right,
+      var(--cel-accent) 0 var(--settings-slider-fill-position),
+      var(--contrast-border) var(--settings-slider-fill-position) 100%
+    );
+  }
+  .settings-slider::-moz-range-track {
+    height: 4px;
+    box-shadow: none;
+    background: var(--contrast-border);
+  }
+  .settings-slider::-moz-range-progress {
+    height: 4px;
+    background: var(--cel-accent);
+  }
+  .settings-slider::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border: 2px solid var(--background);
+    background: var(--cel-accent);
+    box-shadow: 0 0 0 1px var(--cel-accent);
+  }
+  .settings-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--background);
+    background: var(--cel-accent);
+    box-shadow: 0 0 0 1px var(--cel-accent);
+  }
+
+  /* —— toasts: panel cards with the soft shadow —— */
+  [data-slot="toast-popup"] {
+    background: color-mix(in srgb, var(--cel-panel) var(--glass-opacity), transparent);
+    border: 1px solid var(--contrast-border);
+    border-radius: var(--cel-r-lg);
+    box-shadow: var(--cel-shadow);
+    -webkit-backdrop-filter: var(--glass-backdrop-filter);
+    backdrop-filter: var(--glass-backdrop-filter);
+  }
+  [data-slot="toast-title"] {
+    font-weight: 600;
+  }
+
+  /* —— alerts and cards —— */
+  [data-slot="alert"] {
+    border-radius: var(--cel-r-md);
+    border-color: var(--contrast-border);
+  }
+  [data-slot="settings-group"][data-variant="grouped"] {
+    border-radius: var(--cel-r-lg);
+    border: 1px solid var(--contrast-border);
+    background: var(--cel-panel);
+    box-shadow: var(--cel-shadow-soft);
+
+    > * + * {
+      border-top-color: var(--cel-border-soft);
+    }
+  }
+  [data-slot="separator"] {
+    background: var(--cel-border-soft);
+  }
+  [data-slot="skeleton"] {
+    background: var(--cel-panel-2);
+    border-radius: var(--cel-r-sm);
+  }
+
+  /* —— sidebar: the island's rows and controls —— */
+  [data-slot="sidebar-menu-button"] {
+    border-radius: var(--cel-r-sm);
+    transition: background-color 0.13s var(--cel-ease-soft);
+  }
+  [data-slot="sidebar-menu-button"][data-active="true"] {
+    box-shadow: 0 0 0 1px var(--sidebar-border);
+  }
+
+  /* —— composer —— */
+  [data-slot="composer-shell"]::before,
+  [data-slot="composer-host"]::before,
+  [data-chat-composer-main-surface]::before {
+    background-color: color-mix(in srgb, var(--cel-panel) var(--glass-opacity), transparent);
+    -webkit-backdrop-filter: var(--glass-backdrop-filter);
+    backdrop-filter: var(--glass-backdrop-filter);
+  }
+  [data-slot="composer-host"]::after,
+  [data-chat-composer-main-surface]::after {
+    border-color: var(--contrast-border);
+    box-shadow: none;
+  }
+  /* An attached banner (the stash tab) makes the host taller than the card; the card casts it then. */
+  [data-slot="composer-shell"]:not(:has([data-composer-banner-surface="attached"]))
+    [data-slot="composer-host"] {
+    box-shadow: var(--cel-shadow-soft);
+  }
+
+  /* —— chat prose —— */
+  .chat-markdown a {
+    color: var(--cel-accent);
+    text-decoration: none;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: var(--cel-accent-strong);
+      text-decoration: underline;
+    }
+  }
+  .chat-markdown blockquote {
+    border-left: 3px solid var(--cel-accent);
+    color: var(--contrast-muted-foreground);
+  }
+  .chat-markdown pre,
+  .chat-markdown .chat-markdown-codeblock {
+    border-radius: var(--cel-r-md);
+  }
+  .chat-markdown :not(pre) > code {
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+
+  /* Entrances for lists that mount in place (settings pages, panels). */
+  [data-settings-page-scroll] [data-slot="settings-group"] {
+    animation: cel-step-in 0.3s var(--cel-ease-soft) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui-theme="celedus"] {
+    [data-slot="menu-popup"],
+    [data-slot="select-popup"],
+    [data-slot="popover-popup"],
+    [data-slot="combobox-popup"],
+    [data-slot="autocomplete-popup"],
+    [data-slot="preview-card-popup"],
+    [data-slot="menu-sub-content"],
+    [data-slot="dialog-popup"],
+    [data-slot="alert-dialog-popup"],
+    [data-slot="command-dialog-popup"],
+    [data-settings-page-scroll] [data-slot="settings-group"] {
+      animation: none;
+    }
+    [data-slot="button"]:active:not([aria-haspopup]),
+    [data-slot="checkbox"]:active {
+      scale: 1;
+    }
+  }
+}

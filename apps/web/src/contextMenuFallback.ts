@@ -150,6 +150,19 @@ const ICON_PATHS: Record<string, ReadonlyArray<{ tag: string; attrs: Record<stri
     { tag: "path", attrs: { d: "M3 5a2 2 0 0 0 2 2h3" } },
     { tag: "path", attrs: { d: "M3 3v13a2 2 0 0 0 2 2h3" } },
   ],
+  "git-fork": [
+    { tag: "circle", attrs: { cx: "12", cy: "18", r: "3" } },
+    { tag: "circle", attrs: { cx: "6", cy: "6", r: "3" } },
+    { tag: "circle", attrs: { cx: "18", cy: "6", r: "3" } },
+    { tag: "path", attrs: { d: "M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9" } },
+    { tag: "path", attrs: { d: "M12 12v3" } },
+  ],
+  "app-window": [
+    { tag: "rect", attrs: { x: "2", y: "4", width: "20", height: "16", rx: "2" } },
+    { tag: "path", attrs: { d: "M10 4v4" } },
+    { tag: "path", attrs: { d: "M2 8h20" } },
+    { tag: "path", attrs: { d: "M6 4v4" } },
+  ],
   "text-search": [
     { tag: "path", attrs: { d: "M21 5H3" } },
     { tag: "path", attrs: { d: "M10 12H3" } },
@@ -339,8 +352,16 @@ export function showContextMenuFallback<T extends string>(
           // Tab closes the menu and continues from the element that opened it.
           cleanup(null);
           return;
-        default:
-          return;
+        default: {
+          // A single letter activates the item that advertises it, like a native mnemonic.
+          if (event.key.length !== 1) return;
+          const key = event.key.toLowerCase();
+          const shortcut = buttons.find((button) => button.dataset.shortcutKey === key);
+          if (!shortcut) return;
+          canDismissFromPointer = true;
+          shortcut.click();
+          break;
+        }
       }
       event.preventDefault();
       event.stopPropagation();
@@ -476,6 +497,17 @@ export function showContextMenuFallback<T extends string>(
         label.className = "min-w-0 flex-1 truncate";
         label.textContent = item.label;
         button.appendChild(label);
+
+        if (typeof item.shortcutKey === "string" && item.shortcutKey.length === 1 && !hasChildren) {
+          button.dataset.shortcutKey = item.shortcutKey.toLowerCase();
+          const hint = document.createElement("kbd");
+          hint.className = "ms-auto ps-3 font-sans text-xs text-muted-foreground";
+          hint.style.cssText =
+            "margin-left:auto;padding-left:0.75rem;font-family:var(--font-sans,system-ui,sans-serif);font-size:0.75rem;color:var(--contrast-muted-foreground);";
+          hint.textContent = item.shortcutKey.toUpperCase();
+          hint.setAttribute("aria-hidden", "true");
+          button.appendChild(hint);
+        }
 
         if (hasChildren) {
           button.setAttribute("aria-haspopup", "menu");

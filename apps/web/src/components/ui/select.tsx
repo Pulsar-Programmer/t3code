@@ -48,6 +48,8 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       className={cn(selectTriggerVariants({ size, variant }), className)}
       data-slot="select-trigger"
+      data-size={size}
+      data-variant={variant}
       {...props}
     >
       {children}
@@ -68,6 +70,8 @@ function SelectButton({
   const defaultProps = {
     className: cn(selectTriggerVariants({ size }), className),
     "data-slot": "select-trigger",
+    "data-size": size,
+    "data-variant": "default",
     type: render ? undefined : ("button" as const),
   };
   return useRender({

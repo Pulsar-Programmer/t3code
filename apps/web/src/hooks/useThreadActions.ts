@@ -43,6 +43,7 @@ import {
   readProject,
   readThreadShell,
   readThreadShells,
+  waitForThreadShell,
 } from "../state/entities";
 import { useUiStateStore } from "../uiStateStore";
 import { useDiffPanelStore } from "../diffPanelStore";
@@ -51,6 +52,7 @@ import { clearThreadPreviewState } from "../previewStateStore";
 import { useRightPanelStore } from "../rightPanelStore";
 import { useTerminalUiStateStore } from "../terminalUiStateStore";
 import { buildThreadRouteParams, resolveThreadRouteRef } from "../threadRoutes";
+import { newThreadId } from "~/lib/utils";
 import { formatWorktreePathForDisplay, getOrphanedWorktreePathForThread } from "../worktreeCleanup";
 import { stackedThreadToast, toastManager } from "../components/ui/toast";
 import { useClientSettings } from "./useSettings";
@@ -315,6 +317,9 @@ export function useThreadActions() {
     reportFailure: false,
   });
   const stopThreadSession = useOrchestrationCommand(threadEnvironment.stopSession);
+  const forkThreadMutation = useAtomCommand(threadEnvironment.forkFromRun, {
+    reportFailure: false,
+  });
   const removeWorktree = useAtomCommand(vcsEnvironment.removeWorktree, {
     reportFailure: false,
   });
@@ -370,6 +375,33 @@ export function useThreadActions() {
         router.navigate({
           to: "/$environmentId/$threadId",
           params: buildThreadRouteParams(target),
+        }),
+      );
+    }
+    return result;
+  };
+
+  // Students know "duplicate"; the server knows it as a fork of the latest stable point.
+  const duplicateThread = async (target: ScopedThreadRef) => {
+    const resolved = resolveThreadTarget(target);
+    if (!resolved) return AsyncResult.success(undefined);
+    const { thread, threadRef } = resolved;
+    const targetThreadId = newThreadId();
+    const targetThreadRef = scopeThreadRef(threadRef.environmentId, targetThreadId);
+    const result = await forkThreadMutation({
+      environmentId: threadRef.environmentId,
+      input: {
+        sourceThreadId: threadRef.threadId,
+        targetThreadId,
+        title: `${thread.title} copy`,
+      },
+    });
+    if (result._tag === "Failure") return result;
+    if (await waitForThreadShell(targetThreadRef)) {
+      await settlePromise(() =>
+        router.navigate({
+          to: "/$environmentId/$threadId",
+          params: buildThreadRouteParams(targetThreadRef),
         }),
       );
     }
@@ -952,6 +984,7 @@ export function useThreadActions() {
   return {
     archiveThread,
     unarchiveThread,
+    duplicateThread,
     deleteThread,
     confirmAndDeleteThread,
     settleThread,

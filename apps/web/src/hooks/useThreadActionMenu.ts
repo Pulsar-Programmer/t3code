@@ -43,6 +43,8 @@ import {
 } from "@t3tools/client-runtime/state/project-grouping";
 import { buildPhysicalToLogicalProjectKeyMap } from "../sidebarProjectGrouping";
 import { threadRuntimeCanArchive } from "@t3tools/client-runtime/state/models";
+import { openPopoutWindow } from "../lib/popoutWindow";
+import { buildThreadRouteParams } from "../threadRoutes";
 import { useCopyToClipboard } from "./useCopyToClipboard";
 import { useNewThreadHandler } from "./useHandleNewThread";
 import { useClientSettings } from "./useSettings";
@@ -85,6 +87,7 @@ export function useThreadActionMenu(input: {
     setThreadAutoSettle,
     archiveThread,
     deleteThread,
+    duplicateThread,
     markThreadUnread,
     turnThreadIntoProject,
   } = useThreadActions();
@@ -149,6 +152,8 @@ export function useThreadActionMenu(input: {
         snoozePresets,
         canShareWithGuest,
         canTurnIntoProject: canTurnThreadIntoProject(threadRef),
+        canDuplicate: configLoaded,
+        canOpenInNewWindow: true,
       });
       const clicked = await settlePromise(() => api.contextMenu.show(items, position));
       if (clicked._tag === "Failure" || clicked.value === null) return;
@@ -246,6 +251,17 @@ export function useThreadActionMenu(input: {
           return;
         case "rename":
           onStartRename();
+          return;
+        case "duplicate":
+          await reportFailure("Could not duplicate thread", () => duplicateThread(threadRef));
+          return;
+        case "open-in-new-window":
+          openPopoutWindow(
+            router.buildLocation({
+              to: "/$environmentId/$threadId",
+              params: buildThreadRouteParams(threadRef),
+            }).href,
+          );
           return;
         case "regenerate-title":
           if (isRegeneratingTitle) return;

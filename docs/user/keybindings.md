@@ -3,6 +3,9 @@
 Customize shortcuts in **Settings → Keybindings** on web and desktop. That page
 also lists the command IDs and defaults available in your version.
 
+`mod+K` opens the command palette to search commands, projects, and threads. The command button at
+the top right of a thread opens it too; hide it with **Settings → Chat → Command palette button**.
+
 ## Composer controls
 
 `mod+shift+d` starts dictation in the focused editor, or the composer, and finishes it on the next press;
@@ -193,10 +196,10 @@ Keep that condition when remapping them if you want the same behavior.
 
 ## Desktop quit shortcut
 
-Use `Cmd+Q` on macOS or `Ctrl+Q` on Windows and Linux. In the default **Hold** mode,
-hold for 1.2 seconds or press twice within 500 milliseconds. Holding requires
-keyboard repeat; if repeat is disabled, use two presses or the application menu.
+Use `Cmd+Q` on macOS or `Ctrl+Q` on Windows and Linux. By default (**Direct**) a single
+press quits.
 
-Change **Settings → General → Confirmations → Quit shortcut** to **Direct** for a
-single press or **Double press** for two presses only. Choosing **Quit** from the
+To guard against accidental quits, change **Settings → General → Confirmations → Quit shortcut**
+to **Hold** (hold for 1.2 seconds or press twice within 500 milliseconds; holding requires
+keyboard repeat) or **Double press** for two presses only. Choosing **Quit** from the
 application menu always quits immediately.

@@ -12,6 +12,8 @@ export interface TimelineMinimapItem {
   readonly rowIndex: number;
   readonly userText: string | null;
   readonly assistantText: string | null;
+  /** The turn's assistant responses, so a pinned response marks its turn on the rail. */
+  readonly assistantMessageIds: ReadonlyArray<string>;
 }
 
 export function deriveTimelineMinimapItems(
@@ -24,21 +26,21 @@ export function deriveTimelineMinimapItems(
       continue;
     }
 
+    const turn = resolveAssistantTurn(rows, index);
     items.push({
       id: row.id,
       rowIndex: index,
       userText: isAttachmentOnlyBootstrapPrompt(row.message.text) ? "" : row.message.text,
-      assistantText: resolveFinalAssistantTextForTurn(rows, index),
+      assistantText: turn.finalAssistantText,
+      assistantMessageIds: turn.assistantMessageIds,
     });
   }
   return items;
 }
 
-function resolveFinalAssistantTextForTurn(
-  rows: ReadonlyArray<MessagesTimelineRow>,
-  userRowIndex: number,
-) {
+function resolveAssistantTurn(rows: ReadonlyArray<MessagesTimelineRow>, userRowIndex: number) {
   let finalAssistantText: string | null = null;
+  const assistantMessageIds: string[] = [];
   for (let index = userRowIndex + 1; index < rows.length; index += 1) {
     const row = rows[index];
     if (row?.kind !== "message") {
@@ -49,9 +51,19 @@ function resolveFinalAssistantTextForTurn(
     }
     if (row.message.role === "assistant") {
       finalAssistantText = row.message.text ?? null;
+      assistantMessageIds.push(row.message.id);
     }
   }
-  return finalAssistantText;
+  return { finalAssistantText, assistantMessageIds };
+}
+
+export function timelineMinimapItemIsPinned(
+  item: Pick<TimelineMinimapItem, "assistantMessageIds">,
+  pinnedMessageIds: ReadonlySet<string>,
+): boolean {
+  return (
+    pinnedMessageIds.size > 0 && item.assistantMessageIds.some((id) => pinnedMessageIds.has(id))
+  );
 }
 
 const markdownPreviewParser = unified().use(remarkParse).use(remarkGfm).freeze();

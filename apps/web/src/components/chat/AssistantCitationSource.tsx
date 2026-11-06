@@ -8,14 +8,126 @@ import {
 import { toastManager } from "../ui/toast";
 import { observeResize } from "~/lib/observeResize";
 
-const CITATION_PULSE_DURATION_MS = 650;
-const CITATION_HIGHLIGHT_HOLD_MS = 1575;
-const CITATION_HIGHLIGHT_FADE_MS = 450;
+const CITATION_HIGHLIGHT_RISE_MS = 280;
+const CITATION_HIGHLIGHT_HOLD_MS = 2400;
+const CITATION_HIGHLIGHT_FADE_MS = 900;
 const CITATION_HIGHLIGHT_TOTAL_MS =
-  1.5 * CITATION_PULSE_DURATION_MS + CITATION_HIGHLIGHT_HOLD_MS + CITATION_HIGHLIGHT_FADE_MS;
+  CITATION_HIGHLIGHT_RISE_MS + CITATION_HIGHLIGHT_HOLD_MS + CITATION_HIGHLIGHT_FADE_MS;
 const CITATION_HIGHLIGHT_OPACITY = "--assistant-citation-highlight-opacity";
-const CITATION_HIGHLIGHT_PEAK = 0.45;
-const COMMENT_HIGHLIGHT_NAME = "t3-assistant-citation-comment";
+// index.css scales the underline by 3x, so the peak stays at or under 1/3.
+const CITATION_HIGHLIGHT_PEAK = 0.3;
+
+/** One box per visual line of `range`, from text nodes only (element rects would cover whole blocks). */
+function rangeLineRects(range: Range) {
+  const common = range.commonAncestorContainer;
+  const doc = common.ownerDocument ?? document;
+  const walker = doc.createTreeWalker(common, NodeFilter.SHOW_TEXT);
+  const piece = doc.createRange();
+  const lines: { left: number; right: number; top: number; bottom: number }[] = [];
+  for (
+    let node = common.nodeType === Node.TEXT_NODE ? common : walker.nextNode();
+    node;
+    node = walker.nextNode()
+  ) {
+    if (!range.intersectsNode(node)) continue;
+    // Unselectable chrome (copy buttons, labels) never shows as selected natively either.
+    if (node.parentElement && getComputedStyle(node.parentElement).userSelect === "none") continue;
+    piece.selectNodeContents(node);
+    if (node === range.startContainer) piece.setStart(node, range.startOffset);
+    if (node === range.endContainer) piece.setEnd(node, range.endOffset);
+    for (const rect of piece.getClientRects()) {
+      // Clipped screen-reader copies (KaTeX MathML) report 1px rects.
+      if (rect.width < 2 || rect.height < 2) continue;
+      // ponytail: linear scan per rect; fine for quote-sized ranges.
+      const line = lines.find((l) => rect.top < l.bottom && rect.bottom > l.top);
+      if (!line) {
+        lines.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+        continue;
+      }
+      line.left = Math.min(line.left, rect.left);
+      line.right = Math.max(line.right, rect.right);
+      line.top = Math.min(line.top, rect.top);
+      line.bottom = Math.max(line.bottom, rect.bottom);
+    }
+  }
+  return lines;
+}
+
+/** Paints `range` into the source's marker layer, padded by `--citation-highlight-padding`. */
+function paintCitationMarker(
+  source: HTMLElement,
+  range: Range | null,
+  owner: object,
+  look: "reveal" | "comment" | "selection",
+) {
+  const layer = source.parentElement?.querySelector<HTMLElement>(
+    ":scope > [data-citation-markers]",
+  );
+  if (!layer) return;
+  for (const old of markerBoxes.get(owner) ?? []) old.remove();
+  markerBoxes.delete(owner);
+  if (!range) return;
+  const origin = layer.getBoundingClientRect();
+  const boxes = rangeLineRects(range).map((line) => {
+    const box = layer.ownerDocument.createElement("span");
+    box.dataset.look = look;
+    box.style.setProperty("--x", `${line.left - origin.left}px`);
+    box.style.setProperty("--y", `${line.top - origin.top}px`);
+    box.style.setProperty("--w", `${line.right - line.left}px`);
+    box.style.setProperty("--h", `${line.bottom - line.top}px`);
+    return box;
+  });
+  layer.append(...boxes);
+  markerBoxes.set(owner, boxes);
+}
+const markerBoxes = new WeakMap<object, HTMLElement[]>();
+
+/**
+ * Follows the live text selection inside `viewport` with padded marker boxes. Sources it paints
+ * get `data-selection-marked`, which hides the native selection paint there (see index.css).
+ */
+export function observeAssistantSelectionMarker(viewport: HTMLElement): () => void {
+  const doc = viewport.ownerDocument;
+  let marked = new Set<HTMLElement>();
+  let frame: number | null = null;
+  const unmark = (source: HTMLElement) => {
+    paintCitationMarker(source, null, source, "selection");
+    delete source.dataset.selectionMarked;
+  };
+  const paint = () => {
+    frame = null;
+    const selection = doc.getSelection();
+    const range =
+      selection && selection.rangeCount > 0 && !selection.isCollapsed
+        ? selection.getRangeAt(0)
+        : null;
+    const next = new Set<HTMLElement>();
+    if (range) {
+      for (const source of viewport.querySelectorAll<HTMLElement>(
+        "[data-assistant-citation-source]",
+      )) {
+        if (!range.intersectsNode(source)) continue;
+        const part = range.cloneRange();
+        if (!source.contains(range.startContainer)) part.setStart(source, 0);
+        if (!source.contains(range.endContainer)) part.setEnd(source, source.childNodes.length);
+        paintCitationMarker(source, part, source, "selection");
+        source.dataset.selectionMarked = "";
+        next.add(source);
+      }
+    }
+    for (const source of marked) if (!next.has(source)) unmark(source);
+    marked = next;
+  };
+  const onSelectionChange = () => {
+    frame ??= requestAnimationFrame(paint);
+  };
+  doc.addEventListener("selectionchange", onSelectionChange);
+  return () => {
+    doc.removeEventListener("selectionchange", onSelectionChange);
+    if (frame !== null) cancelAnimationFrame(frame);
+    for (const source of marked) unmark(source);
+  };
+}
 
 export function observeAssistantCitationCommentSource({
   anchor,
@@ -27,23 +139,29 @@ export function observeAssistantCitationCommentSource({
   onUnavailable: () => void;
 }): () => void {
   const { source, range, viewport } = anchor;
-  const registry = typeof CSS !== "undefined" ? CSS.highlights : undefined;
-  let highlight: Highlight | null = null;
+  const owner = {};
   let stopped = false;
+  const paint = () => {
+    if (!stopped) paintCitationMarker(source, range, owner, "comment");
+  };
   const observer = new MutationObserver((records) => {
     if (stopped) return;
-    const sourceChanged = records.some((record) => source.contains(record.target));
-    validate(sourceChanged);
+    // Repainting on our own marker boxes would loop.
+    const external = records.filter(
+      (record) =>
+        !(record.target instanceof Element && record.target.matches("[data-citation-markers]")),
+    );
+    if (external.length === 0) return;
+    const sourceChanged = external.some((record) => source.contains(record.target));
+    if (validate(sourceChanged)) paint();
   });
+  let stopObservingResize = () => {};
   const dispose = () => {
     if (stopped) return;
     stopped = true;
     observer.disconnect();
-    if (!highlight) return;
-    highlight.delete(range);
-    if (highlight.size === 0 && registry?.get(COMMENT_HIGHLIGHT_NAME) === highlight) {
-      registry.delete(COMMENT_HIGHLIGHT_NAME);
-    }
+    stopObservingResize();
+    paintCitationMarker(source, null, owner, "comment");
   };
   const unavailable = () => {
     if (stopped) return;
@@ -73,13 +191,9 @@ export function observeAssistantCitationCommentSource({
   };
 
   if (!validate(false)) return dispose;
-  if (typeof Highlight !== "undefined" && registry) {
-    const existing = registry.get(COMMENT_HIGHLIGHT_NAME);
-    highlight = existing ?? new Highlight();
-    highlight.add(range);
-    if (!existing) registry.set(COMMENT_HIGHLIGHT_NAME, highlight);
-  }
+  paint();
   observer.observe(viewport, { childList: true, subtree: true, characterData: true });
+  stopObservingResize = observeResize([source], paint);
   return dispose;
 }
 
@@ -115,31 +229,15 @@ function observeAssistantCitationSource({
   const scrollNode = list.getScrollableNode();
   if (!(scrollNode instanceof HTMLElement)) return;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let highlighted: Highlight | null = null;
+  const owner = {};
   let ownedRange: Range | null = null;
-  let selected: { range: Range; snapshot: Range } | null = null;
   let frame: number | null = null;
   let scrolling = false;
   let stopped = false;
   let pulseAnimation: Animation | null = null;
-  let canReplaceSelection = !activation.scrolled;
-  const ownsSelection = (selection: Selection | null) =>
-    selected !== null &&
-    selection?.rangeCount === 1 &&
-    selection.getRangeAt(0) === selected.range &&
-    selected.range.startContainer === selected.snapshot.startContainer &&
-    selected.range.startOffset === selected.snapshot.startOffset &&
-    selected.range.endContainer === selected.snapshot.endContainer &&
-    selected.range.endOffset === selected.snapshot.endOffset;
   const clear = () => {
-    if (highlighted && CSS.highlights.get("t3-assistant-citation") === highlighted) {
-      CSS.highlights.delete("t3-assistant-citation");
-    }
-    highlighted = null;
+    paintCitationMarker(root, null, owner, "reveal");
     ownedRange = null;
-    const selection = selected ? root.ownerDocument.getSelection() : null;
-    if (selected && ownsSelection(selection)) selection?.removeRange(selected.range);
-    selected = null;
     delete root.dataset.citationHighlighted;
   };
   const finishHighlight = () => {
@@ -216,25 +314,9 @@ function observeAssistantCitationSource({
       finishHighlight();
       return;
     }
-    if (typeof Highlight !== "undefined" && typeof CSS !== "undefined" && CSS.highlights) {
-      highlighted = new Highlight(range);
-      CSS.highlights.set("t3-assistant-citation", highlighted);
-      ownedRange = range;
-      root.dataset.citationHighlighted = "true";
-    } else {
-      const selection = root.ownerDocument.getSelection();
-      if (selection && (canReplaceSelection || ownsSelection(selection))) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-        selected = { range: selection.getRangeAt(0), snapshot: range.cloneRange() };
-        canReplaceSelection = false;
-        ownedRange = range;
-        root.dataset.citationHighlighted = "true";
-      } else {
-        finishHighlight();
-        return;
-      }
-    }
+    paintCitationMarker(root, range, owner, "reveal");
+    ownedRange = range;
+    root.dataset.citationHighlighted = "true";
     if (!pulseAnimation) {
       const pulse = (activation.pulse ??= {
         startedAt: performance.now(),
@@ -242,28 +324,26 @@ function observeAssistantCitationSource({
       });
       const at = (milliseconds: number) => milliseconds / CITATION_HIGHLIGHT_TOTAL_MS;
       const holdEnd = at(CITATION_HIGHLIGHT_TOTAL_MS - CITATION_HIGHLIGHT_FADE_MS);
-      pulseAnimation = root.animate(
-        pulse.reducedMotion
-          ? [
-              { offset: 0, [CITATION_HIGHLIGHT_OPACITY]: CITATION_HIGHLIGHT_PEAK },
-              { offset: holdEnd, [CITATION_HIGHLIGHT_OPACITY]: CITATION_HIGHLIGHT_PEAK },
-              { offset: 1, [CITATION_HIGHLIGHT_OPACITY]: 0 },
-            ]
-          : [
-              { offset: 0, [CITATION_HIGHLIGHT_OPACITY]: 0 },
-              {
-                offset: at(CITATION_PULSE_DURATION_MS * 0.5),
-                [CITATION_HIGHLIGHT_OPACITY]: CITATION_HIGHLIGHT_PEAK,
-              },
-              { offset: at(CITATION_PULSE_DURATION_MS), [CITATION_HIGHLIGHT_OPACITY]: 0 },
-              {
-                offset: at(CITATION_PULSE_DURATION_MS * 1.5),
-                [CITATION_HIGHLIGHT_OPACITY]: CITATION_HIGHLIGHT_PEAK,
-              },
-              { offset: holdEnd, [CITATION_HIGHLIGHT_OPACITY]: CITATION_HIGHLIGHT_PEAK },
-              { offset: 1, [CITATION_HIGHLIGHT_OPACITY]: 0 },
-            ],
-        { duration: CITATION_HIGHLIGHT_TOTAL_MS, easing: "ease-in-out" },
+      // The marker layer is the root's sibling, so the opacity lives on their shared parent.
+      pulseAnimation = (root.parentElement ?? root).animate(
+        [
+          {
+            offset: 0,
+            [CITATION_HIGHLIGHT_OPACITY]: pulse.reducedMotion ? CITATION_HIGHLIGHT_PEAK : 0,
+            easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+          },
+          {
+            offset: at(CITATION_HIGHLIGHT_RISE_MS),
+            [CITATION_HIGHLIGHT_OPACITY]: CITATION_HIGHLIGHT_PEAK,
+          },
+          {
+            offset: holdEnd,
+            [CITATION_HIGHLIGHT_OPACITY]: CITATION_HIGHLIGHT_PEAK,
+            easing: "ease-in-out",
+          },
+          { offset: 1, [CITATION_HIGHLIGHT_OPACITY]: 0 },
+        ],
+        { duration: CITATION_HIGHLIGHT_TOTAL_MS },
       );
       pulseAnimation.id = "t3-assistant-citation-pulse";
       pulseAnimation.currentTime = Math.max(0, performance.now() - pulse.startedAt);
@@ -281,7 +361,6 @@ function observeAssistantCitationSource({
         !root.contains(ownedRange.startContainer) ||
         !root.contains(ownedRange.endContainer));
     if (rangeMoved) {
-      canReplaceSelection ||= selected !== null && ownsSelection(root.ownerDocument.getSelection());
       clear();
     }
     if (
@@ -357,13 +436,16 @@ export function AssistantCitationSource({
   }, [itemKey, listRef, messageId, request]);
 
   return (
-    <div
-      ref={rootRef}
-      data-assistant-citation-source={messageId}
-      data-assistant-citation-environment={threadRef?.environmentId}
-      data-assistant-citation-thread={threadRef?.threadId}
-    >
-      {children}
+    <div className="relative">
+      <div
+        ref={rootRef}
+        data-assistant-citation-source={messageId}
+        data-assistant-citation-environment={threadRef?.environmentId}
+        data-assistant-citation-thread={threadRef?.threadId}
+      >
+        {children}
+      </div>
+      <div aria-hidden="true" data-citation-markers="" />
     </div>
   );
 }

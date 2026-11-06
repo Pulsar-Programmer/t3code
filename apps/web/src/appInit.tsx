@@ -78,15 +78,24 @@ function startClientAppearance(): void {
     if (previous?.chatWidth !== settings.chatWidth) {
       root.dataset.chatWidth = settings.chatWidth;
     }
+    if (previous?.uiTheme !== settings.uiTheme) {
+      root.dataset.uiTheme = settings.uiTheme;
+    }
     if (previous?.appearanceContrast !== settings.appearanceContrast) {
       applyAppearanceContrast(root, settings.appearanceContrast);
+    }
+    if (previous?.citationHighlightPaddingPx !== settings.citationHighlightPaddingPx) {
+      root.style.setProperty(
+        "--citation-highlight-padding",
+        `${settings.citationHighlightPaddingPx}px`,
+      );
     }
     if (previous?.glassOpacity !== settings.glassOpacity) {
       root.style.setProperty("--glass-opacity", `${settings.glassOpacity}%`);
       if (settings.glassOpacity === 100) {
-        root.style.setProperty("--glass-blur", "0px");
+        root.style.setProperty("--glass-backdrop-filter", "none");
       } else {
-        root.style.removeProperty("--glass-blur");
+        root.style.removeProperty("--glass-backdrop-filter");
       }
     }
     if (

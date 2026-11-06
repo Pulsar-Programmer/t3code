@@ -49,10 +49,14 @@ function useFontDefaultFamilies() {
     sans: resolveDefaultFamilyLabel(DEFAULT_SANS_FONT_STACK) ?? "System default",
     code: resolveDefaultFamilyLabel(DEFAULT_CODE_FONT_STACK) ?? "System monospace",
   }));
+  // Celedus bundles its fonts (celedus.css), so they are always the defaults it renders.
+  const celedus = settings.uiTheme === "celedus";
+  const sans = celedus ? "P22 Mackinac Pro" : defaults.sans;
   return {
-    sans: defaults.sans,
-    code: defaults.code,
-    interfaceFamily: settings.fontFamilySans.trim() || defaults.sans,
+    sans,
+    code: celedus ? "Fira Code" : defaults.code,
+    terminal: defaults.code,
+    interfaceFamily: settings.fontFamilySans.trim() || sans,
   };
 }
 
@@ -167,7 +171,7 @@ function TerminalFontRow() {
     <FontFamilySettingsRow
       {...searchableSetting("terminal-font")}
       description="Terminal output, independent from code blocks and diffs."
-      defaultFamily={defaults.code}
+      defaultFamily={defaults.terminal}
       defaultValue={DEFAULT_UNIFIED_SETTINGS.fontFamilyTerminal}
       value={settings.fontFamilyTerminal}
       onValueChange={(fontFamilyTerminal) => updateSettings({ fontFamilyTerminal })}

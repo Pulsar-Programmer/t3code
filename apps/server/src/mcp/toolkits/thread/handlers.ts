@@ -359,6 +359,15 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
         case "mark_unread":
           command = { ...common, type: "thread.mark-unread" };
           break;
+        case "rename":
+          if (input.title === undefined) {
+            return yield* new OrchestratorMcpFailure({
+              code: "invalid_request",
+              message: "rename requires title.",
+            });
+          }
+          command = { ...common, type: "thread.metadata.update", title: input.title };
+          break;
         default:
           command = { ...common, type: `thread.${input.action}` };
       }

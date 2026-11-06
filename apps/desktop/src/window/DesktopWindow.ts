@@ -212,6 +212,19 @@ export function isSameOriginRendererNavigation(input: {
   }
 }
 
+/** The renderer asked for a second app window (`?popout=1` on an app route). */
+export function isPopoutWindowUrl(input: {
+  readonly applicationUrl: string;
+  readonly navigationUrl: string;
+}): boolean {
+  if (!isSameOriginRendererNavigation(input)) return false;
+  try {
+    return new URL(input.navigationUrl).searchParams.get("popout") === "1";
+  } catch {
+    return false;
+  }
+}
+
 function isRetryableDevelopmentRendererLoadFailure(input: {
   readonly applicationUrl: string;
   readonly errorCode: number;
@@ -626,6 +639,31 @@ export const make = Effect.gen(function* () {
     });
 
     window.webContents.setWindowOpenHandler(({ url }) => {
+      // A pop-out is the app itself in a second window; it keeps the renderer's own preload and sandbox.
+      if (isPopoutWindowUrl({ applicationUrl, navigationUrl: url })) {
+        return {
+          action: "allow",
+          overrideBrowserWindowOptions: {
+            width: 1180,
+            height: 820,
+            minWidth: 640,
+            minHeight: 480,
+            autoHideMenuBar: true,
+            backgroundColor: getInitialWindowBackgroundColor(shouldUseDarkColors),
+            ...iconOption,
+            title: environment.displayName,
+            ...getWindowTitleBarOptions(shouldUseDarkColors, environment.platform),
+            webPreferences: {
+              preload: environment.preloadPath,
+              contextIsolation: true,
+              nodeIntegration: false,
+              sandbox: true,
+              webviewTag: true,
+              disableHtmlFullscreenWindowResize: true,
+            },
+          },
+        };
+      }
       if (Option.isSome(ElectronShell.parseSafeExternalUrl(url))) {
         void runPromise(electronShell.openExternal(url));
       }

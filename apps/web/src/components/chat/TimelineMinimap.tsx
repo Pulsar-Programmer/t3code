@@ -1,4 +1,8 @@
-import { resolveTimelineMinimapPreview, type TimelineMinimapItem } from "./timelineMinimapItems";
+import {
+  resolveTimelineMinimapPreview,
+  timelineMinimapItemIsPinned,
+  type TimelineMinimapItem,
+} from "./timelineMinimapItems";
 import { useRef, useState, type MouseEvent } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { Button } from "../ui/button";
@@ -12,6 +16,7 @@ import {
 } from "./MessagesTimeline.logic";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "~/lib/utils";
+import { useClientSettings } from "../../hooks/useSettings";
 
 function timelineMinimapEventTargetsPreview(target: EventTarget): boolean {
   return target instanceof Element && target.closest("[data-minimap-preview]") !== null;
@@ -39,6 +44,7 @@ export function TimelineMinimap({
   hitStripWidth,
   currentIndex,
   items,
+  pinnedMessageIds,
   stripMap,
   onWheel,
   onSelect,
@@ -47,10 +53,12 @@ export function TimelineMinimap({
   hitStripWidth: number;
   currentIndex: number | null;
   items: ReadonlyArray<TimelineMinimapItem>;
+  pinnedMessageIds: ReadonlySet<string>;
   stripMap: Map<string, HTMLSpanElement>;
   onWheel: (event: WheelEvent) => void;
   onSelect: (item: TimelineMinimapItem) => void;
 }) {
+  const large = useClientSettings((settings) => settings.largeTimelineNavigator);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const wheelTargetRef = (node: HTMLDivElement | null) => {
     if (!node) return;
@@ -143,7 +151,7 @@ export function TimelineMinimap({
             onMouseButtonsReleased(() => setPassThrough(false));
           }}
           style={{
-            height: resolveTimelineMinimapHeightStyle(items.length),
+            height: resolveTimelineMinimapHeightStyle(items.length, large),
             width: resolveTimelineMinimapInteractiveWidth(hitStripWidth, activeItem !== null),
           }}
         >
@@ -209,6 +217,7 @@ export function TimelineMinimap({
               const top = `${resolveTimelineMinimapTopPercent(index, items.length)}%`;
               const activeDistance =
                 resolvedActiveIndex === null ? null : Math.abs(index - resolvedActiveIndex);
+              const pinned = timelineMinimapItemIsPinned(item, pinnedMessageIds);
               return (
                 // Compositor-friendly on purpose: in-view state and the hover
                 // fisheye animate constantly (every scroll tick and streaming
@@ -217,11 +226,20 @@ export function TimelineMinimap({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "pointer-events-none absolute left-0 h-0.5 w-6 origin-left -translate-y-1/2 rounded-full transition-transform duration-150 after:absolute after:inset-0 after:rounded-full after:bg-foreground/55 after:opacity-0 after:transition-opacity after:duration-150 data-[in-view=true]:after:opacity-100",
-                    activeDistance === 0 ? "bg-muted-foreground/60" : "bg-muted-foreground/25",
-                    activeDistance === 0
+                    "pointer-events-none absolute left-0 origin-left -translate-y-1/2 rounded-full transition-transform duration-150 after:absolute after:inset-0 after:rounded-full after:bg-foreground/55 after:opacity-0 after:transition-opacity after:duration-150 data-[in-view=true]:after:opacity-100",
+                    large ? "h-1 w-8" : "h-0.5 w-6",
+                    // A pinned turn stays gold and full width so it reads from across the room.
+                    pinned
+                      ? cn(
+                          large ? "h-1.5" : "h-1",
+                          "bg-warning shadow-sm shadow-warning/60 after:bg-warning",
+                        )
+                      : activeDistance === 0
+                        ? "bg-muted-foreground/60"
+                        : "bg-muted-foreground/25",
+                    pinned || activeDistance === 0
                       ? "scale-x-100"
-                      : activeDistance === 1
+                      : activeDistance === 1 || large
                         ? "scale-x-[0.667]"
                         : activeDistance === 2
                           ? "scale-x-[0.417]"
@@ -229,6 +247,7 @@ export function TimelineMinimap({
                   )}
                   data-in-view="false"
                   data-minimap-strip
+                  data-pinned={pinned || undefined}
                   key={item.id}
                   ref={(node) => {
                     if (node) {
@@ -253,6 +272,9 @@ export function TimelineMinimap({
               >
                 <span className="dropdown-glass block rounded-xl p-3 text-left text-popover-foreground shadow-xl shadow-black/25">
                   <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium leading-5">
+                    {timelineMinimapItemIsPinned(activeItem, pinnedMessageIds) ? (
+                      <span className="me-1.5 text-warning">Pinned ·</span>
+                    ) : null}
                     {activeItem.userText ?? "User message"}
                   </span>
                   {activeItem.assistantText ? (

@@ -2355,6 +2355,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     restoreStashEntryStable,
     deleteStashEntryStable,
     toggleStashMenuStable,
+    requestStash,
   } = useComposerStash({
     environmentId,
     composerDraftTarget,
@@ -3334,7 +3335,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           count={stashQueue.length}
           menuOpen={isStashMenuOpen}
           pulseKey={stashPulseKey}
+          alwaysVisible={settings.composerStashButtonEnabled}
+          stashShortcutLabel={shortcutLabelForCommand(keybindings, "composer.stash", {
+            context: { terminalFocus: false, terminalOpen, modelPickerOpen: false },
+          })}
           onToggleMenu={toggleStashMenuStable}
+          onStash={requestStash}
         />
       </ComposerBanner.Dock>
       <div className="relative">

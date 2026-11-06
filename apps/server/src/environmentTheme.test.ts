@@ -11,6 +11,8 @@ import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 
 import * as ServerConfig from "./config.ts";
+import * as Settings from "./serverSettings.ts";
+import * as Exit from "effect/Exit";
 import * as EnvironmentTheme from "./environmentTheme.ts";
 import { symlinksSupported } from "@t3tools/shared/testing/symlinks";
 
@@ -67,6 +69,40 @@ const currentThemes = Effect.gen(function* () {
 });
 
 it.layer(NodeServices.layer)("environment theme", (it) => {
+  it.effect(
+    "publishes readable themes, switches defaults, and rejects reserved or oversized files",
+    () =>
+      withEnvironmentThemes(
+        {},
+        Effect.gen(function* () {
+          const themes = yield* EnvironmentTheme.EnvironmentThemeService;
+          const settings = yield* Settings.ServerSettingsService;
+          const result = yield* themes.publish({
+            id: "nightfall",
+            theme: NIGHTFALL_THEME,
+            setAsDefault: true,
+          });
+          assert.strictEqual(result.isDefault, true);
+          assert.deepStrictEqual(yield* themes.current, [{ id: "nightfall", ...NIGHTFALL_THEME }]);
+          assert.strictEqual((yield* settings.getSettings).defaultTheme, "nightfall");
+          for (const input of [
+            { id: "ocean", theme: NIGHTFALL_THEME },
+            { id: "../escape", theme: NIGHTFALL_THEME },
+            { id: "empty", theme: { name: "Empty", appearance: "light" as const } },
+            {
+              id: "large",
+              theme: {
+                ...NIGHTFALL_THEME,
+                name: "x".repeat(EnvironmentTheme.MAX_THEME_FILE_BYTES),
+              },
+            },
+          ]) {
+            assert.isTrue(Exit.isFailure(yield* Effect.exit(themes.publish(input))));
+          }
+          assert.strictEqual((yield* themes.current).length, 1);
+        }).pipe(Effect.provide(Settings.layerTest())),
+      ),
+  );
   it.effect("follows the directory rather than the set read at start", () =>
     withEnvironmentThemes(
       { "nightfall.json": encodeThemeFile(NIGHTFALL_THEME) },

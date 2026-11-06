@@ -31,6 +31,7 @@ type BootResult = {
   isDark: boolean;
   themeId: string | undefined;
   themeSelected: string | undefined;
+  uiTheme: string | undefined;
   backgroundColor: string;
   bootVariables: Record<string, string>;
   metaContent: string | null;
@@ -53,6 +54,7 @@ function runBootScript(options: {
     dataset: {} as Record<string, string | undefined>,
     classList: {
       add: (name: string) => void classes.add(name),
+      contains: (name: string) => classes.has(name),
       remove: (name: string) => void classes.delete(name),
       toggle: (name: string, force?: boolean) => {
         const next = force ?? !classes.has(name);
@@ -93,6 +95,7 @@ function runBootScript(options: {
     isDark: classes.has("dark"),
     themeId: documentElement.dataset.themeId,
     themeSelected: documentElement.dataset.themeSelected,
+    uiTheme: documentElement.dataset.uiTheme,
     backgroundColor: documentElement.style.backgroundColor,
     bootVariables,
     metaContent: meta.content,
@@ -375,8 +378,41 @@ describe("index.html boot script", () => {
     const light = runBootScript({ storageThrows: true, prefersDark: false });
     expect(light.isDark).toBe(false);
     expect(light.themeId).toBeUndefined();
+    expect(light.uiTheme).toBe("celedus");
 
     const dark = runBootScript({ storageThrows: true, prefersDark: true });
     expect(dark.isDark).toBe(true);
+  });
+
+  it("paints the Celedus canvas by default while no color theme is selected", () => {
+    const light = runBootScript({ storage: {}, prefersDark: false });
+    expect(light.uiTheme).toBe("celedus");
+    expect(light.backgroundColor).toBe("#f4f1e6");
+    expect(light.metaContent).toBe("#f4f1e6");
+
+    const dark = runBootScript({ storage: {}, prefersDark: true });
+    expect(dark.backgroundColor).toBe("#262624");
+
+    const themed = runBootScript({
+      storage: { [THEME_STORAGE_KEY]: "t3-chat", [THEME_FOLLOW_SYSTEM_STORAGE_KEY]: "true" },
+      prefersDark: true,
+    });
+    expect(themed.uiTheme).toBe("celedus");
+    expect(themed.backgroundColor).toBe(getThemeColorsForMode(T3_CHAT_THEME, "dark")!.chrome);
+  });
+
+  it("keeps the T3 Code interface when the client settings ask for it", () => {
+    const boot = runBootScript({
+      storage: { "t3code:client-settings:v1": JSON.stringify({ uiTheme: "t3code" }) },
+      prefersDark: true,
+    });
+    expect(boot.uiTheme).toBe("t3code");
+    expect(boot.backgroundColor).toBe("#000000");
+
+    const malformed = runBootScript({
+      storage: { "t3code:client-settings:v1": "{not json" },
+      prefersDark: false,
+    });
+    expect(malformed.uiTheme).toBe("celedus");
   });
 });

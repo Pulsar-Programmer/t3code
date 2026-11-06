@@ -28,7 +28,15 @@ describe("deriveTimelineMinimapItems", () => {
           },
         },
       ]);
-      expect(items).toEqual([{ id: "image-only", rowIndex: 0, userText: "", assistantText: null }]);
+      expect(items).toEqual([
+        {
+          id: "image-only",
+          rowIndex: 0,
+          userText: "",
+          assistantText: null,
+          assistantMessageIds: [],
+        },
+      ]);
       expect(resolveTimelineMinimapPreview(items[0]!)?.userText).toBeNull();
     },
   );
@@ -40,6 +48,7 @@ describe("resolveTimelineMinimapPreview", () => {
       id: "turn-1",
       rowIndex: 0,
       userText: null,
+      assistantMessageIds: [],
       assistantText:
         "Started <t3-thread://v2/env-1/thread-1> and [Fix CI](t3-thread://v2/env-1/t2).",
     });

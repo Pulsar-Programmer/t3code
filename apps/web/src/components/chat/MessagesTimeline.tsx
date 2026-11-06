@@ -101,6 +101,7 @@ import { TimelineSystemDivider } from "./TimelineSystemDivider";
 
 import { forwardWheelToTimeline } from "./timelineMinimapWheel";
 import { TimelineMinimap } from "./TimelineMinimap";
+import { subscribeTimelineJump, type TimelineJumpRequest } from "./timelineJump";
 import {
   type TimelineRowSharedState,
   type TimelineRowActivityState,
@@ -137,6 +138,8 @@ import { useThreadFindPositionReader } from "./useThreadFindPositionReader";
 import { ThreadActivityAnnouncer } from "./ThreadActivityAnnouncer";
 import { useStableHandoffRuns, useIncrementalTimelineRows, useStableRows } from "./useTimelineRows";
 import { useClientSettings } from "../../hooks/useSettings";
+
+const NO_PINNED_MESSAGE_IDS: ReadonlySet<string> = new Set();
 
 function timelineListStateFor(identity: string): {
   readonly identity: string;
@@ -225,6 +228,8 @@ interface MessagesTimelineProps {
     citation: AssistantCitation,
     sourceAnchor: AssistantCitationSourceAnchor,
   ) => boolean;
+  onCiteInNewDraft?: (citation: AssistantCitation) => void;
+  onCiteInSideChat?: (citation: AssistantCitation) => void;
   isWorking: boolean;
   runlessWorkActive?: boolean;
   activeTurnStartedAt?: string | null;
@@ -276,6 +281,9 @@ interface MessagesTimelineProps {
     readonly sourceThreadId: ThreadId;
     readonly runId: RunId;
   }) => Promise<void>;
+  /** Responses pinned on this client; absent `onToggleMessagePin` hides pinning, as in the guest view. */
+  pinnedMessageIds?: ReadonlySet<string>;
+  onToggleMessagePin?: (messageId: string) => void;
   supportsConversationRollback: boolean;
   threadStartCheckpointReady?: boolean;
   availableRevertTurnCounts?: ReadonlySet<number> | undefined;
@@ -338,6 +346,8 @@ const ConversationTimeline = memo(function ConversationTimeline({
   citationRequest = null,
   citationHistory = CITED_HISTORY_LOADING,
   onCiteAssistantText,
+  onCiteInNewDraft,
+  onCiteInSideChat,
   isWorking,
   runlessWorkActive = false,
   activeTurnStartedAt = null,
@@ -375,6 +385,8 @@ const ConversationTimeline = memo(function ConversationTimeline({
   parentThreadLink = null,
   workflowOpening = null,
   onForkFromRun,
+  pinnedMessageIds,
+  onToggleMessagePin,
   supportsConversationRollback,
   threadStartCheckpointReady = false,
   availableRevertTurnCounts,
@@ -731,6 +743,22 @@ const ConversationTimeline = memo(function ConversationTimeline({
   const listOpenedOn = nextOpening.mounted ? nextOpening.identity : null;
   const viewportRef = useRef<TimelineViewport | null>(null);
   const navigateTimeline = () => viewportRef.current?.navigate({ releasesFollow: true });
+  const jumpToMessage = useStableCallback((request: TimelineJumpRequest) => {
+    if (request.threadKey !== routeThreadKey) return false;
+    const index = rows.findIndex(
+      (row) => row.kind === "message" && row.message.id === request.messageId,
+    );
+    if (index < 0) return false;
+    navigateTimeline();
+    void listRef.current?.scrollToIndex({
+      index,
+      animated: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      viewOffset: 24,
+    });
+    return true;
+  });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes this timeline to jump requests posted from outside the list (the pinned responses menu)
+  useEffect(() => subscribeTimelineJump(jumpToMessage), [jumpToMessage]);
   const restoreReady = restoringThreadPosition && rows.length > 0;
   // Z: syncs LegendList's scroll position with which thread it shows. The list
   // is not keyed per thread and reports no "new data" event, and the restore
@@ -1051,6 +1079,8 @@ const ConversationTimeline = memo(function ConversationTimeline({
     turnItemSource,
     workflowOpening,
     onForkFromRun,
+    pinnedMessageIds: pinnedMessageIds ?? NO_PINNED_MESSAGE_IDS,
+    onToggleMessagePin,
     onToggleTurnFold,
     onToggleAttemptFold,
     onToggleWorkGroup,
@@ -1317,6 +1347,8 @@ const ConversationTimeline = memo(function ConversationTimeline({
                 viewport={timelineViewportElement}
                 threadRef={citationThreadRef}
                 onCite={onCiteAssistantText}
+                onCiteInNewDraft={onCiteInNewDraft}
+                onCiteInSideChat={onCiteInSideChat}
               />
             ) : null}
             <LegendList<MessagesTimelineRow>
@@ -1367,6 +1399,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
             />
             <TimelineMinimap
               items={minimapItems}
+              pinnedMessageIds={pinnedMessageIds ?? NO_PINNED_MESSAGE_IDS}
               hasPersistentGutter={minimapHasPersistentGutter}
               hitStripWidth={minimapHitStripWidth}
               currentIndex={minimapCurrentIndex}

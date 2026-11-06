@@ -684,6 +684,16 @@ export function useComposerStash(input: {
     if (projectSelectionRequired || activePendingProgress !== null) return;
     void stashCurrentPromptStable();
   });
+  // The Stash button beside the composer: the shortcut's action, without claiming a key event.
+  const requestStash = useStableCallback(() => {
+    if (isCommandPaletteOpen() || isRevertingCheckpoint()) return;
+    if (pendingUserInputs.length > 0) {
+      setIsStashMenuOpen((open) => !open);
+      return;
+    }
+    if (projectSelectionRequired || activePendingProgress !== null) return;
+    void stashCurrentPromptStable();
+  });
   // Capture phase while the composer is mounted, so Mod+S never reaches the browser's save
   // dialog even when a focused widget (the model picker search) stops the key.
   const backgroundThread = use(BackgroundThreadContext);
@@ -716,5 +726,6 @@ export function useComposerStash(input: {
     restoreStashEntryStable,
     deleteStashEntryStable,
     toggleStashMenuStable,
+    requestStash,
   };
 }

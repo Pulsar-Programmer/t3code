@@ -71,6 +71,7 @@ function Input({
       }
       data-size={size}
       data-slot="input-control"
+      data-unstyled={unstyled ? "" : undefined}
     >
       {inputElement}
     </span>

@@ -65,6 +65,24 @@ describe("buildThreadActionMenuItems", () => {
     },
   );
 
+  it("advertises single-letter shortcuts for rename, duplicate, mark unread, archive, and delete", () => {
+    const items = buildThreadActionMenuItems({ ...baseState, canDuplicate: true });
+    expect(
+      Object.fromEntries(
+        items.filter((item) => item.shortcutKey).map((item) => [item.id, item.shortcutKey]),
+      ),
+    ).toEqual({
+      rename: "R",
+      duplicate: "F",
+      "mark-unread": "U",
+      archive: "A",
+      delete: "D",
+    });
+    expect(buildThreadActionMenuItems(baseState).some((item) => item.id === "duplicate")).toBe(
+      false,
+    );
+  });
+
   it("disables archive and turning into a project while the thread is running", () => {
     const items = buildThreadActionMenuItems({
       ...baseState,

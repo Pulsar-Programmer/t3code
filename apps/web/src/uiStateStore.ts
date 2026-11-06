@@ -31,6 +31,7 @@ export interface PersistedUiState {
   threadChangedFilesExpansionVersion?: number;
   threadChangedFilesExpandedById?: Record<string, Record<string, boolean>>;
   pullRequestMergeMethod?: string;
+  pinnedMessagesByThreadKey?: Record<string, string[]>;
 }
 
 export interface UiProjectState {
@@ -42,6 +43,8 @@ export interface UiProjectState {
 export interface UiThreadState {
   threadLastVisitedAtById: Record<string, string>;
   threadChangedFilesExpandedById: Record<string, Record<string, boolean>>;
+  /** Message ids the user pinned, per scoped thread key, in pin order. Local to this client. */
+  pinnedMessagesByThreadKey: Record<string, string[]>;
 }
 
 export interface UiEndpointState {
@@ -61,6 +64,7 @@ const initialState: UiState = {
   sidebarProjectScopeKeys: [],
   threadLastVisitedAtById: {},
   threadChangedFilesExpandedById: {},
+  pinnedMessagesByThreadKey: {},
   defaultAdvertisedEndpointKey: null,
   pullRequestMergeMethod: "merge",
 };
@@ -114,6 +118,18 @@ function sanitizeTimestampRecord(value: unknown): Record<string, string> {
   );
 }
 
+function sanitizeStringArrayRecord(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  const next: Record<string, string[]> = {};
+  for (const [key, entries] of Object.entries(value)) {
+    const ids = sanitizeStringArray(entries);
+    if (key.length > 0 && ids.length > 0) next[key] = ids;
+  }
+  return next;
+}
+
 function isPullRequestMergeMethod(value: unknown): value is PullRequestMergeMethod {
   return value === "merge" || value === "squash" || value === "rebase";
 }
@@ -157,6 +173,7 @@ export function parsePersistedState(parsed: PersistedUiState): UiState {
     pullRequestMergeMethod: isPullRequestMergeMethod(parsed.pullRequestMergeMethod)
       ? parsed.pullRequestMergeMethod
       : initialState.pullRequestMergeMethod,
+    pinnedMessagesByThreadKey: sanitizeStringArrayRecord(parsed.pinnedMessagesByThreadKey),
   };
 }
 
@@ -236,6 +253,7 @@ export function persistState(state: UiState): void {
         threadChangedFilesExpansionVersion: THREAD_CHANGED_FILES_EXPANSION_VERSION,
         threadChangedFilesExpandedById: state.threadChangedFilesExpandedById,
         pullRequestMergeMethod: state.pullRequestMergeMethod,
+        pinnedMessagesByThreadKey: state.pinnedMessagesByThreadKey,
       } satisfies PersistedUiState),
     );
     if (!legacyKeysCleanedUp) {
@@ -318,6 +336,27 @@ function setThreadChangedFilesExpanded(
       },
     },
   };
+}
+
+export function toggleMessagePinned(state: UiState, threadKey: string, messageId: string): UiState {
+  const current = state.pinnedMessagesByThreadKey[threadKey] ?? [];
+  const next = current.includes(messageId)
+    ? current.filter((id) => id !== messageId)
+    : [...current, messageId];
+  const pinnedMessagesByThreadKey = { ...state.pinnedMessagesByThreadKey };
+  if (next.length === 0) delete pinnedMessagesByThreadKey[threadKey];
+  else pinnedMessagesByThreadKey[threadKey] = next;
+  return { ...state, pinnedMessagesByThreadKey };
+}
+
+const NO_PINNED_MESSAGES: ReadonlyArray<string> = [];
+
+export function usePinnedMessageIds(threadKey: string | null): ReadonlyArray<string> {
+  return useUiStateStore((state) =>
+    threadKey === null
+      ? NO_PINNED_MESSAGES
+      : (state.pinnedMessagesByThreadKey[threadKey] ?? NO_PINNED_MESSAGES),
+  );
 }
 
 function setDefaultAdvertisedEndpointKey(state: UiState, key: string | null): UiState {
@@ -432,6 +471,7 @@ interface UiStateStore extends UiState {
   markThreadVisited: (threadId: string, visitedAt: string) => void;
   markThreadUnread: (threadId: string, latestTurnCompletedAt: string | null | undefined) => void;
   setThreadChangedFilesExpanded: (threadId: string, turnId: string, expanded: boolean) => void;
+  toggleMessagePinned: (threadKey: string, messageId: string) => void;
   setDefaultAdvertisedEndpointKey: (key: string | null) => void;
   setSidebarProjectScopeKeys: (projectKeys: readonly string[]) => void;
   setPullRequestMergeMethod: (method: PullRequestMergeMethod) => void;
@@ -451,6 +491,8 @@ export const useUiStateStore = create<UiStateStore>((set) => ({
     set((state) => markThreadUnread(state, threadId, latestTurnCompletedAt)),
   setThreadChangedFilesExpanded: (threadId, turnId, expanded) =>
     set((state) => setThreadChangedFilesExpanded(state, threadId, turnId, expanded)),
+  toggleMessagePinned: (threadKey, messageId) =>
+    set((state) => toggleMessagePinned(state, threadKey, messageId)),
   setDefaultAdvertisedEndpointKey: (key) =>
     set((state) => setDefaultAdvertisedEndpointKey(state, key)),
   setSidebarProjectScopeKeys: (projectKeys) =>

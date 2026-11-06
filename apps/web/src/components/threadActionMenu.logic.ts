@@ -18,6 +18,8 @@ export type ThreadActionMenuId =
   | `snooze:${string}`
   | "unsnooze"
   | "rename"
+  | "duplicate"
+  | "open-in-new-window"
   | "regenerate-title"
   | "mark-unread"
   | "share-guest"
@@ -95,6 +97,10 @@ export interface ThreadActionMenuState {
   readonly canShareWithGuest?: boolean;
   /** A No project thread with its own folder, on a server that can promote it. */
   readonly canTurnIntoProject?: boolean;
+  /** Forking copies the thread's history into a new thread; set when the server supports it. */
+  readonly canDuplicate?: boolean;
+  /** Pop the thread out into its own window; the web fallback is a browser popup. */
+  readonly canOpenInNewWindow?: boolean;
 }
 
 /** Local navigation, read markers, and copying remain available to read-only clients. */
@@ -102,6 +108,7 @@ export function threadActionRequiresOperate(action: ThreadActionMenuId): boolean
   return ![
     "find",
     "new-thread-on-branch",
+    "open-in-new-window",
     "project-settings",
     "mark-unread",
     "share-guest",
@@ -166,7 +173,27 @@ export function buildThreadActionMenuItems(
               },
         ]
       : []),
-    { id: "rename", label: "Rename thread", icon: "pencil", separatorBefore: true },
+    {
+      id: "rename",
+      label: "Rename thread",
+      icon: "pencil",
+      separatorBefore: true,
+      shortcutKey: "R",
+    },
+    ...(state.canDuplicate
+      ? [
+          {
+            id: "duplicate" as const,
+            label: "Duplicate thread",
+            icon: "git-fork",
+            shortcutKey: "F",
+            disabled: state.isRunning,
+          },
+        ]
+      : []),
+    ...(state.canOpenInNewWindow
+      ? [{ id: "open-in-new-window" as const, label: "Open in new window", icon: "app-window" }]
+      : []),
     ...(state.supports.titleRegeneration
       ? [
           {
@@ -177,7 +204,7 @@ export function buildThreadActionMenuItems(
           },
         ]
       : []),
-    { id: "mark-unread", label: "Mark unread", icon: "mail-open" },
+    { id: "mark-unread", label: "Mark unread", icon: "mail-open", shortcutKey: "U" },
     ...(state.canShareWithGuest
       ? [{ id: "share-guest" as const, label: "Share with guest", icon: "user-plus" }]
       : []),
@@ -244,12 +271,14 @@ export function buildThreadActionMenuItems(
       icon: "archive",
       disabled: state.isRunning,
       separatorBefore: true,
+      shortcutKey: "A",
     },
     {
       id: "delete",
       label: "Delete",
       destructive: true,
       icon: "trash",
+      shortcutKey: "D",
     },
   ];
   return state.canOperate

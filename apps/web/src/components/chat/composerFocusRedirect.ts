@@ -34,6 +34,8 @@ export const TYPE_TO_FOCUS_FLOATING_LAYER_SELECTOR = [
   '[data-slot="popover-popup"]:is([data-open],[data-ending-style])',
   '[data-slot="combobox-popup"]:is([data-open],[data-ending-style])',
   '[data-slot="autocomplete-popup"]:is([data-open],[data-ending-style])',
+  // The web context menu; it is removed from the DOM when it closes.
+  '[data-context-menu="true"]',
 ].join(",");
 
 export function eventPathContainsSelector(event: Event, selector: string): boolean {

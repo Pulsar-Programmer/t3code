@@ -21,6 +21,15 @@ Android uses **Material You Layout** by default unless you have turned it off in
 It changes shapes, spacing, and controls independently
 of the selected theme.
 
+## UI theme
+
+**Settings → Appearance → Interface → UI theme** picks the interface style on web and desktop.
+**Celedus Web**, the default, uses paper and Claude-dark tones, serif type, and pill buttons.
+Panels are solid by default; lower **Glass opacity** for transparency. **T3 Code** is the original
+look. Your color scheme, selected theme, fonts, contrast, and glass opacity apply to either style.
+The command palette's **Change UI theme** switches it as well. Mobile has
+its own styling and does not offer this setting.
+
 ## Composer context
 
 Git-backed projects show branch and worktree controls below the composer while you create a thread.
@@ -105,3 +114,6 @@ view.
 
 Write updates to a temporary file and rename it into place so clients never read a partial theme.
 Invalid files are not published.
+
+You can also ask an agent in a thread with full access to design a theme. It publishes the theme to
+this directory and, if you ask, sets it as the default for connected clients.

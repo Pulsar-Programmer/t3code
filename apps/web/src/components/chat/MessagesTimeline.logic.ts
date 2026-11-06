@@ -282,6 +282,7 @@ export function workEntryIsVisibleInGroup(
   );
 }
 const TIMELINE_MINIMAP_ITEM_SPACING = 8;
+const TIMELINE_MINIMAP_LARGE_ITEM_SPACING = 14;
 export const TIMELINE_MINIMAP_MIN_ITEMS = 2;
 const TIMELINE_MINIMAP_MAX_HEIGHT_CSS = "calc(100vh - 18rem)";
 const TIMELINE_MINIMAP_PERSISTENT_GUTTER = 48;
@@ -336,8 +337,9 @@ export function resolveTimelineIsAtEnd(state: TimelineEndState | undefined): boo
   return contentLength - scroll - scrollLength <= TIMELINE_FOLLOW_REARM_THRESHOLD_PX;
 }
 
-export function resolveTimelineMinimapHeightStyle(itemCount: number): string {
-  const naturalHeight = Math.max(1, (itemCount - 1) * TIMELINE_MINIMAP_ITEM_SPACING);
+export function resolveTimelineMinimapHeightStyle(itemCount: number, large = false): string {
+  const spacing = large ? TIMELINE_MINIMAP_LARGE_ITEM_SPACING : TIMELINE_MINIMAP_ITEM_SPACING;
+  const naturalHeight = Math.max(1, (itemCount - 1) * spacing);
   return `min(${naturalHeight}px, ${TIMELINE_MINIMAP_MAX_HEIGHT_CSS})`;
 }
 

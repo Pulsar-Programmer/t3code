@@ -133,7 +133,10 @@ import { AsyncResult } from "effect/reactivity";
 import { isElectron } from "../env";
 import { useDiffPanelStore } from "../diffPanelStore";
 import { useActiveThreadRef } from "../hooks/useActiveThreadRef";
-import { composerRequiresModifier } from "../composer-logic";
+import { composerRequiresModifier, formatAssistantCitationForComposer } from "../composer-logic";
+import { threadContextRecord } from "@t3tools/shared/composerContextReferences";
+import { threadContextReference } from "../lib/composerContextRecords";
+import { formatInlineContextReference } from "../lib/composerContextReferences";
 import {
   derivePhase,
   deriveActiveWorkStartedAt,
@@ -280,6 +283,8 @@ import { ProviderSubagentBar } from "./chat/ProviderSubagentBar";
 import { getTriggerDisplayModelName } from "./chat/providerIconUtils";
 import { resolveScrollToEndClearance } from "./composerFooterLayout";
 import { ChatHeader } from "./chat/ChatHeader";
+import { TitlebarQuickActions } from "./chat/TitlebarQuickActions";
+import { usePinnedMessageIds, useUiStateStore } from "../uiStateStore";
 import { useSideChat } from "./chat/useSideChat";
 import { useRemoteOpenState } from "~/remoteOpen";
 import { shouldShowOpenInPicker } from "./chat/OpenInPicker.logic";
@@ -1562,6 +1567,12 @@ export default function ChatView(props: ChatViewProps) {
   );
   const timelineEmpty = timelineEntries.length === 0 && !hasStreamedTimelineRows;
   const displayedTimelineKey = activeThreadKey ?? routeThreadKey;
+  const pinnedMessageIdList = usePinnedMessageIds(displayedTimelineKey);
+  const pinnedMessageIds = new Set(pinnedMessageIdList);
+  const toggleMessagePinned = useUiStateStore((state) => state.toggleMessagePinned);
+  const toggleMessagePinStable = useStableCallback((messageId: string) => {
+    toggleMessagePinned(displayedTimelineKey, messageId);
+  });
   const displayedThreadRef = parseScopedThreadKey(displayedTimelineKey);
   const {
     worktreeSetup,
@@ -2824,6 +2835,41 @@ export default function ChatView(props: ChatViewProps) {
                 : null;
   const openSideChatStable = useStableCallback(() => void sideChat.open());
   const sendSideChatStable = useStableCallback((prompt: string) => sideChat.open(prompt));
+  const citeInSideChatStable = useStableCallback(
+    (citation: AssistantCitation) =>
+      void sideChat.open(undefined, formatAssistantCitationForComposer(citation)),
+  );
+  // A new draft on this thread's branch, seeded with the citation and a reference to this thread.
+  const citeInNewDraftStable = useStableCallback(async (citation: AssistantCitation) => {
+    if (!activeThread) return;
+    const record = threadContextRecord(
+      scopeThreadRef(citation.environmentId, citation.threadId),
+      activeThread.title,
+    );
+    try {
+      const opened = await handleNewThread(
+        scopeProjectRef(activeThread.environmentId, activeThread.projectId),
+        {
+          branch: activeThread.branch,
+          worktreePath: activeThread.worktreePath,
+          envMode: activeThread.worktreePath ? "worktree" : "local",
+          startFromOrigin: false,
+          prompt: `${formatInlineContextReference(threadContextReference(record))} ${formatAssistantCitationForComposer(citation)}`,
+        },
+      );
+      if (opened) {
+        useComposerDraftStore
+          .getState()
+          .addThreadContexts(opened.draftId, [record], { appendReference: false });
+      }
+    } catch (error) {
+      toastManager.add({
+        type: "error",
+        title: "Could not create draft",
+        description: error instanceof Error ? error.message : "An error occurred.",
+      });
+    }
+  });
   const { onConfirmRevertStable, onForkFromRunStable, onRevertTimelineTurnStable } =
     useTimelineRewind({
       environmentId,
@@ -3302,6 +3348,11 @@ export default function ChatView(props: ChatViewProps) {
       maximized={rightPanelMaximized}
       onToggleMaximized={toggleRightPanelMaximizedStable}
     >
+      <TitlebarQuickActions
+        threadRef={isServerThread ? activeThreadRef : null}
+        threadKey={displayedTimelineKey}
+        commandPaletteShortcutLabel={shortcutLabelForCommand(keybindings, "commandPalette.toggle")}
+      />
       {panelToggleControls}
     </WorkspaceTitlebarControls>
   );
@@ -3436,6 +3487,12 @@ export default function ChatView(props: ChatViewProps) {
                   citationRequest={citationRequest}
                   citationHistory={citationHistory}
                   onCiteAssistantText={citeAssistantTextStable}
+                  {...(!embedded && isServerThread
+                    ? { onCiteInNewDraft: citeInNewDraftStable }
+                    : {})}
+                  {...(sideChat.available && sideChatDisabledReason === null
+                    ? { onCiteInSideChat: citeInSideChatStable }
+                    : {})}
                   {...(activeProject
                     ? { onRunShellCommand: parentPanel?.runShellCommand ?? runShellCommandStable }
                     : {})}
@@ -3480,6 +3537,8 @@ export default function ChatView(props: ChatViewProps) {
                   }
                   routeThreadKey={displayedTimelineKey}
                   displayThreadKey={displayedTimelineKey}
+                  pinnedMessageIds={pinnedMessageIds}
+                  onToggleMessagePin={toggleMessagePinStable}
                   announceTurnStatus={!isProviderSubagent}
                   onOpenToolDiff={parentPanel?.openToolDiff ?? onOpenToolDiffStable}
                   // Side chat runs keep no checkpoints to diff, and a fork would promote the side chat.

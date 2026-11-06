@@ -80,6 +80,9 @@ function normalizeContextMenuItems(source: readonly ContextMenuItem[]): ContextM
       disabled: sourceItem.disabled === true,
       ...(sourceItem.separatorBefore === true ? { separatorBefore: true } : {}),
       ...(typeof sourceItem.checked === "boolean" ? { checked: sourceItem.checked } : {}),
+      ...(typeof sourceItem.shortcutKey === "string" && /^[a-z0-9]$/i.test(sourceItem.shortcutKey)
+        ? { shortcutKey: sourceItem.shortcutKey.toUpperCase() }
+        : {}),
     };
 
     if (sourceItem.children) {
@@ -94,6 +97,13 @@ function normalizeContextMenuItems(source: readonly ContextMenuItem[]): ContextM
   }
 
   return normalizedItems;
+}
+
+/** Windows and Linux menus activate an item by its `&` mnemonic; macOS uses the key equivalent. */
+function labelWithMnemonic(label: string, key: string): string {
+  const escaped = label.replaceAll("&", "&&");
+  const index = escaped.toLowerCase().indexOf(key.toLowerCase());
+  return index < 0 ? `${escaped} (&${key})` : `${escaped.slice(0, index)}&${escaped.slice(index)}`;
 }
 
 // popup() takes window points; renderer CSS coordinates must account for page zoom.
@@ -164,7 +174,10 @@ export const make = Effect.gen(function* () {
       }
 
       const itemOption: Electron.MenuItemConstructorOptions = {
-        label: item.label,
+        label:
+          platform !== "darwin" && item.shortcutKey !== undefined
+            ? labelWithMnemonic(item.label, item.shortcutKey)
+            : item.label,
         enabled: !item.disabled,
         ...(typeof item.checked === "boolean" ? { type: "checkbox", checked: item.checked } : {}),
       };
@@ -172,6 +185,11 @@ export const make = Effect.gen(function* () {
         itemOption.submenu = buildTemplate(item.children, complete);
       } else {
         itemOption.click = () => complete(Option.some(item.id));
+        // A bare letter is a key equivalent only while the menu is open; never a global shortcut.
+        if (item.shortcutKey !== undefined) {
+          itemOption.accelerator = item.shortcutKey;
+          itemOption.registerAccelerator = false;
+        }
       }
       if (item.destructive && (!item.children || item.children.length === 0)) {
         const destructiveIcon = getDestructiveMenuIcon();

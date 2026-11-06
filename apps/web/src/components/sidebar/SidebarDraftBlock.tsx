@@ -21,6 +21,7 @@ import {
   type DraftSessionState,
 } from "../../composerDraftStore";
 import { draftPenClassName, draftSurfaceClassName } from "./SidebarThreadRow";
+import { CollapsibleSectionHeader } from "../ui/collapsible-section-header";
 
 const SidebarDraftRow = memo(function SidebarDraftRow(props: {
   draftId: DraftId;
@@ -146,6 +147,9 @@ export const SidebarDraftBlock = memo(function SidebarDraftBlock(props: {
   routeDraftId: string | null;
   onNavigateToDraft: (draftId: DraftId) => void;
   onDraftContextMenu: (draftId: DraftId, position: { x: number; y: number }) => void;
+  /** Null renders drafts inline without a section header. */
+  sectionExpanded: boolean | null;
+  onToggleSection: () => void;
 }) {
   const draftThreadsByThreadKey = useComposerDraftStore((store) => store.draftThreadsByThreadKey);
   const draftsByThreadKey = useComposerDraftStore(
@@ -204,9 +208,27 @@ export const SidebarDraftBlock = memo(function SidebarDraftBlock(props: {
   if (drafts.length === 0) {
     return null;
   }
+  // A collapsed section still shows the draft you are on, like the other shelves.
+  const visibleDrafts =
+    props.sectionExpanded !== false
+      ? drafts
+      : drafts.filter((draft) => draft.draftId === props.routeDraftId);
   return (
     <>
-      {drafts.map(({ composer, draftId, session }) => {
+      {props.sectionExpanded !== null ? (
+        <li className="relative mx-0.5 h-8 list-none" data-testid="sidebar-drafts-header">
+          <CollapsibleSectionHeader
+            data-sidebar-row="shelf:drafts"
+            onClick={props.onToggleSection}
+            expanded={props.sectionExpanded}
+            data-testid="sidebar-drafts-shelf-toggle"
+            accessory={<span className="font-normal tabular-nums">{drafts.length}</span>}
+          >
+            Drafts
+          </CollapsibleSectionHeader>
+        </li>
+      ) : null}
+      {visibleDrafts.map(({ composer, draftId, session }) => {
         const projectKey = `${session.environmentId}:${session.projectId}`;
         return (
           <SidebarDraftRow

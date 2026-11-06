@@ -6,6 +6,7 @@ import {
   markThreadUnread,
   markThreadVisited,
   parsePersistedState,
+  toggleMessagePinned,
   PERSISTED_STATE_KEY,
   type PersistedUiState,
   persistState,
@@ -22,6 +23,7 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
     sidebarProjectScopeKeys: [],
     threadLastVisitedAtById: {},
     threadChangedFilesExpandedById: {},
+    pinnedMessagesByThreadKey: {},
     defaultAdvertisedEndpointKey: null,
     pullRequestMergeMethod: "merge",
     ...overrides,
@@ -37,6 +39,22 @@ describe("uiStateStore pure functions", () => {
     expect(visited.threadLastVisitedAtById[threadId]).toBe("2026-02-25T12:30:00.700Z");
     expect(markThreadVisited(visited, threadId, "2026-02-25T12:30:00.000Z")).toBe(visited);
     expect(markThreadVisited(visited, threadId, "not-a-date")).toBe(visited);
+  });
+
+  it("toggles pinned messages per thread and drops empty threads", () => {
+    const state = toggleMessagePinned(makeUiState(), "env:thread-1", "m1");
+    const twice = toggleMessagePinned(state, "env:thread-1", "m2");
+    expect(twice.pinnedMessagesByThreadKey).toEqual({ "env:thread-1": ["m1", "m2"] });
+    const unpinned = toggleMessagePinned(
+      toggleMessagePinned(twice, "env:thread-1", "m1"),
+      "env:thread-1",
+      "m2",
+    );
+    expect(unpinned.pinnedMessagesByThreadKey).toEqual({});
+    expect(
+      parsePersistedState({ pinnedMessagesByThreadKey: { a: ["x", 3 as never, "x"], b: [] } })
+        .pinnedMessagesByThreadKey,
+    ).toEqual({ a: ["x"] });
   });
 
   it("marks a completed thread unread using the server completion timestamp", () => {
@@ -127,6 +145,7 @@ describe("parsePersistedState", () => {
       defaultAdvertisedEndpointKey: "desktop-core:lan:http",
       sidebarProjectScopeKeys: [],
       pullRequestMergeMethod: "merge",
+      pinnedMessagesByThreadKey: {},
       threadChangedFilesExpandedById: {
         "environment:thread-1": {
           "turn-1": false,
@@ -240,6 +259,7 @@ describe("uiStateStore persistence", () => {
         },
       },
       pullRequestMergeMethod: "merge",
+      pinnedMessagesByThreadKey: {},
     });
     expect(parsePersistedState(persisted)).toEqual({
       ...state,

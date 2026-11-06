@@ -84,6 +84,9 @@ export interface TimelineRowSharedState {
   onForkFromRun:
     | ((input: { readonly sourceThreadId: ThreadId; readonly runId: RunId }) => Promise<void>)
     | undefined;
+  /** Responses this client pinned; `onToggleMessagePin` absent hides the pin button. */
+  pinnedMessageIds: ReadonlySet<string>;
+  onToggleMessagePin: ((messageId: string) => void) | undefined;
   onToggleTurnFold: (runId: RunId) => void;
   onToggleAttemptFold: (attemptId: RunAttemptId) => void;
   onFileOpen: (attachment: ChatFileAttachment) => void;

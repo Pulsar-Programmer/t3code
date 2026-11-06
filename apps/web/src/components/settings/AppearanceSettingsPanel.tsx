@@ -6,10 +6,13 @@ import {
   type ChatWidth,
   type EffortDisplay,
   type EnvironmentIdentificationMode,
+  type UiTheme,
   MAX_APPEARANCE_CONTRAST,
+  MAX_CITATION_HIGHLIGHT_PADDING_PX,
   MAX_GLASS_OPACITY,
   MAX_PANEL_ANIMATION_DURATION_MS,
   MIN_APPEARANCE_CONTRAST,
+  MIN_CITATION_HIGHLIGHT_PADDING_PX,
   MIN_GLASS_OPACITY,
   MIN_PANEL_ANIMATION_DURATION_MS,
 } from "@t3tools/contracts/settings";
@@ -84,6 +87,11 @@ const EFFORT_DISPLAY_LABELS: Record<EffortDisplay, string> = {
   bars: "Bars",
 };
 
+const UI_THEME_LABELS: Record<UiTheme, string> = {
+  celedus: "Celedus Web",
+  t3code: "T3 Code",
+};
+
 export function AppearanceSettingsPanel() {
   const {
     appearanceMode,
@@ -127,6 +135,13 @@ export function AppearanceSettingsPanel() {
     "--settings-slider-progress": `${glassOpacityRatio * 100}%`,
     "--settings-slider-fill-offset": `${0.5 - glassOpacityRatio}rem`,
   } as CSSProperties;
+  const citationPaddingRatio =
+    (settings.citationHighlightPaddingPx - MIN_CITATION_HIGHLIGHT_PADDING_PX) /
+    (MAX_CITATION_HIGHLIGHT_PADDING_PX - MIN_CITATION_HIGHLIGHT_PADDING_PX);
+  const citationPaddingSliderStyle = {
+    "--settings-slider-progress": `${citationPaddingRatio * 100}%`,
+    "--settings-slider-fill-offset": `${0.5 - citationPaddingRatio}rem`,
+  } as CSSProperties;
   const appearanceContrastRatio =
     (settings.appearanceContrast - MIN_APPEARANCE_CONTRAST) /
     (MAX_APPEARANCE_CONTRAST - MIN_APPEARANCE_CONTRAST);
@@ -163,6 +178,36 @@ export function AppearanceSettingsPanel() {
       </SettingsSection>
 
       <SettingsSection id="appearance-interface" title="Interface">
+        <SettingsRow
+          {...searchableSetting("ui-theme")}
+          description="Celedus Web is paper tones, serif type, and pill controls. T3 Code is the original look. Colors and themes apply to both."
+          resetAction={
+            settings.uiTheme !== DEFAULT_UNIFIED_SETTINGS.uiTheme ? (
+              <SettingResetButton
+                label="UI theme"
+                onClick={() => updateSettings({ uiTheme: DEFAULT_UNIFIED_SETTINGS.uiTheme })}
+              />
+            ) : null
+          }
+          control={
+            <div className="w-full sm:w-40">
+              <Select
+                value={settings.uiTheme}
+                onValueChange={(value) => {
+                  if (value === "celedus" || value === "t3code") updateSettings({ uiTheme: value });
+                }}
+              >
+                <SelectTrigger size="sm" className="w-full min-w-0" aria-label="UI theme">
+                  <SelectValue>{UI_THEME_LABELS[settings.uiTheme]}</SelectValue>
+                </SelectTrigger>
+                <SelectPopup align="end" alignItemWithTrigger={false}>
+                  <SelectItem value="celedus">Celedus Web (default)</SelectItem>
+                  <SelectItem value="t3code">T3 Code</SelectItem>
+                </SelectPopup>
+              </Select>
+            </div>
+          }
+        />
         <SettingsRow
           {...searchableSetting("setting-appearance-contrast")}
           description="Adjust the contrast of colors and borders across the interface."
@@ -252,6 +297,55 @@ export function AppearanceSettingsPanel() {
                 style={glassOpacitySliderStyle}
                 type="range"
                 value={settings.glassOpacity}
+              />
+            </div>
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("setting-citation-highlight-padding")}
+          description="Extra room around highlighted quotes when you open or comment on a citation."
+          resetAction={
+            settings.citationHighlightPaddingPx !==
+            DEFAULT_UNIFIED_SETTINGS.citationHighlightPaddingPx ? (
+              <SettingResetButton
+                label="citation highlight padding"
+                onClick={() =>
+                  updateSettings({
+                    citationHighlightPaddingPx: DEFAULT_UNIFIED_SETTINGS.citationHighlightPaddingPx,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <div className="flex w-full items-center gap-3 sm:w-52">
+              <output
+                className="min-w-12 rounded-md bg-muted px-2 py-1 text-center font-mono text-xs font-medium tabular-nums text-foreground"
+                htmlFor="citation-highlight-padding"
+              >
+                {settings.citationHighlightPaddingPx}px
+              </output>
+              <input
+                aria-label="Citation highlight padding"
+                className="settings-slider min-w-0 flex-1"
+                id="citation-highlight-padding"
+                max={MAX_CITATION_HIGHLIGHT_PADDING_PX}
+                min={MIN_CITATION_HIGHLIGHT_PADDING_PX}
+                onChange={(event) => {
+                  const citationHighlightPaddingPx = Number(event.currentTarget.value);
+                  if (
+                    Number.isInteger(citationHighlightPaddingPx) &&
+                    citationHighlightPaddingPx >= MIN_CITATION_HIGHLIGHT_PADDING_PX &&
+                    citationHighlightPaddingPx <= MAX_CITATION_HIGHLIGHT_PADDING_PX
+                  ) {
+                    updateSettings({ citationHighlightPaddingPx });
+                  }
+                }}
+                step={1}
+                style={citationPaddingSliderStyle}
+                type="range"
+                value={settings.citationHighlightPaddingPx}
               />
             </div>
           }

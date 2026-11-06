@@ -27,6 +27,7 @@ function Textarea({
       }
       data-size={size}
       data-slot="textarea-control"
+      data-unstyled={unstyled ? "" : undefined}
     >
       <FieldPrimitive.Control
         render={(defaultProps) => (

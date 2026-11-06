@@ -6,17 +6,22 @@ import {
   EnvironmentTheme,
   EnvironmentThemeFile,
   EnvironmentThemeId,
+  OrchestratorMcpFailure,
   environmentThemeFileHasColors,
 } from "@t3tools/contracts";
+import { fromJsonStringPretty } from "@t3tools/shared/schemaJson";
+import { writeFileStringAtomically } from "@t3tools/shared/atomicWrite";
 import { UNPUBLISHABLE_THEME_IDS } from "@t3tools/shared/themePalettes";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
+import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Equal from "effect/Equal";
 import * as Exit from "effect/Exit";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
+import * as Path from "effect/Path";
 import * as PubSub from "effect/PubSub";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
@@ -25,6 +30,7 @@ import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 
 import * as ServerConfig from "./config.ts";
+import * as Settings from "./serverSettings.ts";
 
 const decodeEnvironmentThemeFileJsonExit = Schema.decodeUnknownExit(
   Schema.fromJsonString(EnvironmentThemeFile),
@@ -46,6 +52,15 @@ interface PublishedThemes {
 export class EnvironmentThemeService extends Context.Service<
   EnvironmentThemeService,
   {
+    readonly publish: (input: {
+      readonly id: EnvironmentThemeId;
+      readonly theme: EnvironmentThemeFile;
+      readonly setAsDefault?: boolean | undefined;
+    }) => Effect.Effect<
+      { id: string; path: string; isDefault: boolean },
+      OrchestratorMcpFailure,
+      Settings.ServerSettingsService
+    >;
     readonly current: Effect.Effect<ReadonlyArray<EnvironmentTheme>>;
 
     /** Subscribes before reading to retain changes during connection. */
@@ -155,6 +170,7 @@ export const readPublishedThemes = Effect.fn(function* (themesDir: string) {
 const make = Effect.gen(function* () {
   const { environmentThemesDir } = yield* ServerConfig.ServerConfig;
   const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
   // Sequence numbers let subscribers drop queued events older than their initial snapshot.
   const changes = yield* PubSub.sliding<PublishedThemes>(1);
   const published = yield* Ref.make<PublishedThemes>({ seq: 0, themes: [] });
@@ -196,7 +212,51 @@ const make = Effect.gen(function* () {
     Effect.asVoid,
   );
 
+  const publish = Effect.fn("EnvironmentThemeService.publish")(function* (input: {
+    readonly id: EnvironmentThemeId;
+    readonly theme: EnvironmentThemeFile;
+    readonly setAsDefault?: boolean | undefined;
+  }) {
+    const invalid = (message: string) =>
+      new OrchestratorMcpFailure({ code: "invalid_request", message });
+    const unavailable = (cause: unknown) =>
+      new OrchestratorMcpFailure({ code: "orchestration_error", message: String(cause) });
+    if (!isEnvironmentThemeId(input.id) || UNPUBLISHABLE_THEME_IDS.has(input.id)) {
+      return yield* invalid(`"${input.id}" is not a publishable theme id.`);
+    }
+    if (!environmentThemeFileHasColors(input.theme)) {
+      return yield* invalid("The theme needs canvas and accent, or at least one color.");
+    }
+    const contents = yield* Schema.encodeEffect(fromJsonStringPretty(EnvironmentThemeFile))(
+      input.theme,
+    ).pipe(Effect.mapError((cause) => invalid(`The theme could not be encoded: ${cause.message}`)));
+    if (Buffer.byteLength(contents, "utf8") > MAX_THEME_FILE_BYTES) {
+      return yield* invalid(`The theme is larger than ${MAX_THEME_FILE_BYTES} bytes.`);
+    }
+    const filePath = `${environmentThemesDir}/${input.id}.json`;
+    yield* fs
+      .makeDirectory(environmentThemesDir, { recursive: true })
+      .pipe(
+        Effect.andThen(writeFileStringAtomically({ filePath, contents })),
+        Effect.provideService(FileSystem.FileSystem, fs),
+        Effect.provideService(Path.Path, path),
+        Effect.mapError(unavailable),
+      );
+    if (input.setAsDefault === true) {
+      const settings = yield* Settings.ServerSettingsService;
+      yield* settings
+        .updateSettings({
+          defaultTheme: input.id,
+          defaultThemeSetAt: DateTime.formatIso(yield* DateTime.now),
+        })
+        .pipe(Effect.mapError(unavailable));
+    }
+    yield* refresh;
+    return { id: input.id, path: filePath, isDefault: input.setAsDefault === true };
+  });
+
   return {
+    publish,
     current: Effect.map(refresh, (state) => state.themes),
     get streamChanges() {
       return Stream.unwrap(

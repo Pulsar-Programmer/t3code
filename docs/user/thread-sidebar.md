@@ -58,6 +58,25 @@ in a new thread's model picker to add or remove them. A regular click returns to
 single model. Choose a base branch and send. Each selection starts a separate thread
 and worktree while you stay in the new thread composer. This requires a Git project.
 
+## Browse chats
+
+Open **Chats** from the bottom of the sidebar or **Open chats** in the command palette.
+Search past conversations, filter by project or status, and group them by date or project.
+Use **Load more** to include older settled chats. **Pull requests** remains next to Chats.
+
+## Thread menu
+
+On web and desktop, right-click a thread for its menu. While the menu is open, press `R` to
+rename, `F` to duplicate (fork) the whole thread into a new one, `A` to archive, or `D` to delete.
+**Open in new window** shows the thread on its own, without the sidebar.
+
+## Pin responses
+
+Choose the pin button beneath an assistant response to mark it. Pinned turns show in gold on the
+navigation rail at the left of the chat, and the pin button at the top right lists the thread's
+pinned responses so you can jump back to one. Pins are kept on this device. Hide the list button
+with **Settings → Chat → Pinned responses button**.
+
 ## Pin and reorder threads
 
 Pin a thread from its menu to keep it above your active work.
@@ -141,12 +160,18 @@ there. A thread returns to the top of the active list when it finishes, fails, o
 answer. The Working section lists the thread you last sent work to first. Pinned threads stay in
 the pinned section.
 
-This is on by default. Turn it off with **Settings → General → Working section** on web and desktop,
+This is off by default. Turn it on with **Settings → General → Working section** on web and desktop,
 or **Settings → General → Working section** on iOS and Android. Each device keeps its own
 choice.
 
 While this is on, the active list is ordered by when each thread last came back to you, so you
 cannot drag or move threads within it. Your saved order returns when you turn it off.
+
+### Drafts section
+
+Unsent drafts sit under a **Drafts** header at the top of the sidebar. Click the header to
+collapse them; the draft you have open stays visible. Turn the section off with
+**Settings → General → Drafts section** on web and desktop to list drafts without a header.
 
 ### Group threads by project (beta)
 

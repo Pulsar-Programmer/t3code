@@ -113,6 +113,7 @@ function DialogPopup({
             className,
           )}
           data-slot="dialog-popup"
+          data-mobile-sheet={bottomStickOnMobile && variant === "default" ? "" : undefined}
           render={renderRetainedPopup}
           {...props}
         >
